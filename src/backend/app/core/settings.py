@@ -1,4 +1,5 @@
-from pydantic_settings import BaseSettings
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -18,11 +19,18 @@ class Settings(BaseSettings):
 
     # File settings
     MAX_FILE_SIZE: int = 10485760
+    ALLOWED_EXTENSIONS: list[str] = Field(
+        default_factory=lambda: ["pdf", "png", "jpg", "jpeg"],
+        title="Allowed file extensions",
+    )
     UPLOAD_DIR: str = "uploads"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    @property
+    def allowed_extensions(self) -> list[str]:
+        return set(self.ALLOWED_EXTENSIONS)
+
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 settings = Settings()
+print(settings.allowed_extensions)
