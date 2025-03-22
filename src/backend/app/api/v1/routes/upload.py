@@ -17,7 +17,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...)) -> JSONResponse:
 
     # Validate file type
     if not is_file_type_allowed(file, ALLOWED_EXTENSIONS):
