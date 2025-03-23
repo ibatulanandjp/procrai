@@ -11,7 +11,7 @@ router = APIRouter()
 UPLOAD_DIR = app_config.settings.UPLOAD_DIR
 
 
-@router.post("/")
+@router.get("/")
 async def ocr(filename: str) -> JSONResponse:
     file_path = os.path.join(UPLOAD_DIR, filename)
 
