@@ -13,10 +13,6 @@ class Settings(BaseSettings):
     # CORS settings
     BACKEND_CORS_ORIGINS: list[str] = ["*"]
 
-    # OCR settings
-    OCR_ENGINE: str = "tesseract"
-    OCR_LANGUAGE: str = "eng"
-
     # File settings
     MAX_FILE_SIZE: int = 10485760
     ALLOWED_EXTENSIONS: list[str] = Field(
@@ -24,6 +20,14 @@ class Settings(BaseSettings):
         title="Allowed file extensions",
     )
     UPLOAD_DIR: str = "uploads"
+
+    # OCR settings
+    OCR_ENGINE: str = "tesseract"
+    OCR_LANGUAGE: str = "eng"
+
+    # Translation settings
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.1"
 
     @property
     def allowed_extensions(self) -> list[str]:
@@ -33,4 +37,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-print(settings.allowed_extensions)

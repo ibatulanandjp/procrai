@@ -16,7 +16,7 @@ MAX_FILE_SIZE = app_config.settings.MAX_FILE_SIZE
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-@router.post("/")
+@router.post("/", summary="Upload a file")
 async def upload_file(file: UploadFile = File(...)) -> JSONResponse:
 
     # Validate file type
