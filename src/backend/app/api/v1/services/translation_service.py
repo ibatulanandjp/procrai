@@ -59,8 +59,7 @@ class TranslationService:
         prompt = f"""
         Translate the following text from {src_lang} to {target_lang}.
         Preserve the original formatting and structure.
-        Translate the text which has a proper sentence structure and grammar,
-        do not add any additional information.
+        Just translate the text, do not add any additional text or information.
         Text to translate:
         {chunk}
         """
