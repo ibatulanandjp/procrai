@@ -59,8 +59,8 @@ class TranslationService:
         prompt = f"""
         Translate the following text from {src_lang} to {target_lang}.
         Preserve the original formatting and structure.
-        Keep technical terms and proper nouns unchanged.
-        Just translate the text, do not add any additional information.
+        Translate the text which has a proper sentence structure and grammar,
+        do not add any additional information.
         Text to translate:
         {chunk}
         """
@@ -75,7 +75,6 @@ class TranslationService:
                         "stream": False,
                     },
                 )
-                print(response.json())
                 response.raise_for_status()
                 return response.json()["response"].strip()
         except httpx.HTTPError as e:

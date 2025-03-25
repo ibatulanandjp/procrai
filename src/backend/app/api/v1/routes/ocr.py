@@ -1,10 +1,11 @@
 import os
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.services.ocr_service import ocr_service
+from app.api.v1.services.ocr_service import OcrService
 from app.core.config import app_config
+
+from ..schemas.ocr import OcrResponse
 
 router = APIRouter()
 
@@ -12,7 +13,10 @@ UPLOAD_DIR = app_config.settings.UPLOAD_DIR
 
 
 @router.get("/", summary="Extract text from a PDF/image file")
-async def ocr(filename: str) -> JSONResponse:
+async def ocr(
+    filename: str,
+    ocr_service: OcrService = Depends(OcrService),
+) -> OcrResponse:
     file_path = os.path.join(UPLOAD_DIR, filename)
 
     if not os.path.exists(file_path):
@@ -23,8 +27,8 @@ async def ocr(filename: str) -> JSONResponse:
 
     try:
         extracted_text = ocr_service.extract_text(file_path)
-        return JSONResponse(
-            content={"filename": filename, "extracted_text": extracted_text}
+        return OcrResponse(
+            extracted_text=extracted_text,
         )
     except Exception as e:
         raise HTTPException(
