@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
 
 from app.api.v1.schemas.translation import TranslationRequest, TranslationResponse
 from app.api.v1.services.translation_service import TranslationService
@@ -11,7 +10,7 @@ router = APIRouter()
 async def translate(
     request: TranslationRequest,
     translation_service: TranslationService = Depends(TranslationService),
-) -> JSONResponse:
+) -> TranslationResponse:
     try:
         translated_text = await translation_service.translate(
             request.text, request.src_lang, request.target_lang
