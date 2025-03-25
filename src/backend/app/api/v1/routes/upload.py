@@ -1,8 +1,8 @@
 import os
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
 
+from app.api.v1.schemas.upload import UploadResponse
 from app.core.config import app_config
 
 from ..helpers.file_helpers import is_file_type_allowed
@@ -17,7 +17,9 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/", summary="Upload a file")
-async def upload_file(file: UploadFile = File(...)) -> JSONResponse:
+async def upload_file(
+    file: UploadFile = File(..., description="File to upload"),
+) -> UploadResponse:
 
     # Validate file type
     if not is_file_type_allowed(file, ALLOWED_EXTENSIONS):
@@ -38,4 +40,7 @@ async def upload_file(file: UploadFile = File(...)) -> JSONResponse:
     with open(file_path, "wb") as f:
         f.write(file.file.read())
 
-    return JSONResponse(content={"filename": file.filename, "message": "File uploaded"})
+    return UploadResponse(
+        filename=file.filename,
+        message="File uploaded",
+    )
