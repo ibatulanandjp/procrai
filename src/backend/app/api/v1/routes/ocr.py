@@ -26,9 +26,10 @@ async def ocr(
         )
 
     try:
-        extracted_text = ocr_service.extract_text(file_path)
+        elements, page_count = await ocr_service.extract_text(file_path)
         return OcrResponse(
-            extracted_text=extracted_text,
+            elements=elements,
+            page_count=page_count,
         )
     except Exception as e:
         raise HTTPException(
