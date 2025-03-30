@@ -7,7 +7,7 @@ import pytesseract
 from fastapi import HTTPException
 from PIL import Image
 
-from ..schemas.ocr import ElementType, OcrElement, Position
+from ..schemas.document import DocumentElement, ElementType, Position
 
 
 class OcrService:
@@ -17,14 +17,14 @@ class OcrService:
 
     async def extract_text(
         self, file_path: Union[Path, str]
-    ) -> Tuple[List[OcrElement], int]:
+    ) -> Tuple[List[DocumentElement], int]:
         """
         Extract text and layout information from a PDF or image file.
 
         Args:
             file_path: Path to the PDF or image file
         Returns:
-            Tuple[List[OcrElement], int]: Extracted elements and page count
+            Tuple[List[DocumentElement], int]: Extracted elements and page count
         """
         file_path = Path(file_path)
 
@@ -42,14 +42,14 @@ class OcrService:
                 detail=f"Failed to process file: {str(e)}",
             )
 
-    async def _process_pdf(self, file_path: Path) -> Tuple[List[OcrElement], int]:
+    async def _process_pdf(self, file_path: Path) -> Tuple[List[DocumentElement], int]:
         """
         Process a PDF file and extract elements with layout information.
 
         Args:
             file_path: Path to the PDF file
         Returns:
-            Tuple[List[OcrElement], int]: Extracted elements and page count
+            Tuple[List[DocumentElement], int]: Extracted elements and page count
         """
         try:
             doc = fitz.open(file_path)
@@ -86,7 +86,7 @@ class OcrService:
                                 )
 
                                 elements.append(
-                                    OcrElement(
+                                    DocumentElement(
                                         type=ElementType.TEXT,
                                         content=text,
                                         position=Position(
@@ -115,7 +115,7 @@ class OcrService:
                         # Process image blocks
                         elif block.get("type") == 1:
                             elements.append(
-                                OcrElement(
+                                DocumentElement(
                                     type=ElementType.IMAGE,
                                     content="",  # No text content for images
                                     position=Position(
@@ -152,14 +152,16 @@ class OcrService:
                 detail=f"Failed to process PDF file: {str(e)}",
             )
 
-    async def _process_image(self, image_bytes: bytes) -> Tuple[List[OcrElement], int]:
+    async def _process_image(
+        self, image_bytes: bytes
+    ) -> Tuple[List[DocumentElement], int]:
         """
         Process an image file and extract elements with layout information.
 
         Args:
             image_bytes: bytes
         Returns:
-            Tuple[List[OcrElement], int]: Extracted elements and page count
+            Tuple[List[DocumentElement], int]: Extracted elements and page count
         """
         try:
             image = Image.open(BytesIO(image_bytes)).convert("RGB")
@@ -173,7 +175,7 @@ class OcrService:
 
     async def _extract_elements_from_image(
         self, image: Image, page_num: int
-    ) -> List[OcrElement]:
+    ) -> List[DocumentElement]:
         """
         Extract elements from an image using OCR.
         Group elements into logical blocks while preserving layout information.
@@ -182,7 +184,7 @@ class OcrService:
             image: Image
             page_num: int
         Returns:
-            List[OcrElement]: Extracted elements
+            List[DocumentElement]: Extracted elements
         """
         MIN_CONFIDENCE = 30
         VERTICAL_GAP = 5
@@ -201,7 +203,7 @@ class OcrService:
         last_y = None
         last_height = None
 
-        def _create_block_element() -> Optional[OcrElement]:
+        def _create_block_element() -> Optional[DocumentElement]:
             if not current_block:
                 return None
 
@@ -231,7 +233,7 @@ class OcrService:
 
             # Calculate approximate font size from height
             font_size = last_height * 0.75 if last_height else 12
-            return OcrElement(
+            return DocumentElement(
                 type=ElementType.TEXT,
                 content="\n".join(text_with_lines).strip(),
                 position=current_coordinates,

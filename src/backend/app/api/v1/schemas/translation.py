@@ -1,7 +1,9 @@
 from enum import Enum
-from typing import Optional
+from typing import List
 
 from pydantic import BaseModel, Field
+
+from app.api.v1.schemas.document import DocumentElement
 
 
 class LanguageCode(str, Enum):
@@ -10,7 +12,9 @@ class LanguageCode(str, Enum):
 
 
 class TranslationRequest(BaseModel):
-    text: str = Field(..., description="Text to be translated")
+    elements: List[DocumentElement] = Field(
+        ..., description="List of elements to translate"
+    )
     src_lang: LanguageCode = Field(LanguageCode.ENGLISH, description="Source language")
     target_lang: LanguageCode = Field(
         LanguageCode.JAPANESE, description="Target language"
@@ -18,7 +22,6 @@ class TranslationRequest(BaseModel):
 
 
 class TranslationResponse(BaseModel):
-    translated_text: str = Field(..., description="Translated text")
-    src_lang: Optional[LanguageCode] = Field(
-        None, description="Detected source language"
+    translated_elements: List[DocumentElement] = Field(
+        ..., description="List of translated elements"
     )
