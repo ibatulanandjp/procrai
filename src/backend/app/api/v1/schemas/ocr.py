@@ -8,6 +8,7 @@ class ElementType(str, Enum):
     IMAGE = "image"
     TABLE = "table"
     HEADING = "heading"
+    FOOTER = "footer"
 
 
 class Position(BaseModel):
@@ -18,7 +19,7 @@ class Position(BaseModel):
     page: int = Field(..., description="Page number")
 
 
-class DocumentElement(BaseModel):
+class OcrElement(BaseModel):
     type: ElementType = Field(..., description="Type of the element")
     content: str = Field(..., description="Content of the element")
     position: Position = Field(..., description="Position of the element")
@@ -27,7 +28,5 @@ class DocumentElement(BaseModel):
 
 
 class OcrResponse(BaseModel):
-    elements: list[DocumentElement] = Field(
-        ..., description="List of extracted elements"
-    )
+    elements: list[OcrElement] = Field(..., description="List of extracted elements")
     page_count: int = Field(..., description="Number of pages in the document")
