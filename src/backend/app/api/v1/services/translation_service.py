@@ -1,9 +1,13 @@
 from typing import List
 
-import httpx
 from fastapi import HTTPException
 
-from app.api.v1.schemas.translation import LanguageCode
+from app.api.v1.schemas.document import DocumentElement, ElementType
+from app.api.v1.schemas.translation import (
+    LanguageCode,
+    TranslationRequest,
+    TranslationResponse,
+)
 from app.core.settings import settings
 
 
@@ -13,74 +17,102 @@ class TranslationService:
         self.llm_base_url = settings.OLLAMA_BASE_URL
         self.chunk_size = 1000
 
-    async def translate(
-        self,
-        text: str,
-        src_lang: LanguageCode = LanguageCode.ENGLISH,
-        target_lang: LanguageCode = LanguageCode.JAPANESE,
-    ) -> str:
-        if not text.strip():
-            return ""
-
-        chunks = self._chunk_text(text)
-        translated_chunks = [
-            await self._translate_chunk(chunk, src_lang, target_lang)
-            for chunk in chunks
-        ]
-        return "\n\n".join(translated_chunks)
-
-    def _chunk_text(self, text: str) -> List[str]:
-        paragraphs = text.split("\n\n")
-        chunks = []
-        current_chunk = []
-        current_length = 0
-
-        for paragraph in paragraphs:
-            if current_length + len(paragraph) > self.chunk_size:
-                if current_chunk:
-                    chunks.append("\n\n".join(current_chunk))
-                current_chunk = [paragraph]
-                current_length = len(paragraph)
-            else:
-                current_chunk.append(paragraph)
-                current_length += len(paragraph)
-
-        if current_chunk:
-            chunks.append("\n\n".join(current_chunk))
-
-        return chunks
-
-    async def _translate_chunk(
-        self,
-        chunk: str,
-        src_lang: LanguageCode = LanguageCode.ENGLISH,
-        target_lang: LanguageCode = LanguageCode.JAPANESE,
-    ) -> str:
-        prompt = f"""
-        Translate the following text from {src_lang} to {target_lang}.
-        Preserve the original formatting and structure.
-        Just translate the text, do not add any additional text or information.
-        Text to translate:
-        {chunk}
+    async def translate_elements(
+        self, request: TranslationRequest
+    ) -> TranslationResponse:
         """
-
+        Translate a list of document elements in a context-aware manner.
+        """
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.llm_base_url}/api/generate",
-                    json={
-                        "model": self.model,
-                        "prompt": prompt,
-                        "stream": False,
-                    },
+            # Group elements by type and proximity
+            grouped_elements = self._group_elements(request.elements)
+
+            # Translate each group
+            translated_elements = []
+            for group in grouped_elements:
+                translated_group = await self._translate_element_group(
+                    group, request.src_lang, request.target_lang
                 )
-                response.raise_for_status()
-                return response.json()["response"].strip()
-        except httpx.HTTPError as e:
-            raise HTTPException(
-                status_code=500, detail=f"Translation service unavailable: {str(e)}"
-            )
+                translated_elements.extend(translated_group)
+
+            return TranslationResponse(translated_elements=translated_elements)
         except Exception as e:
             raise HTTPException(
-                status_code=500, detail=f"Failed to translate text: {str(e)}"
+                status_code=500, detail=f"Failed to translate elements: {str(e)}"
             )
+
+    def _group_elements(
+        self, elements: List[DocumentElement]
+    ) -> List[List[DocumentElement]]:
+        """
+        Group elements based on type and proximity for context-aware translation.
+        """
+        if not elements:
+            return []
+
+        groups = []
+        current_group = []
+        last_element = None
+
+        for element in sorted(elements, key=lambda x: (x.position.page, x.position.y0)):
+            if last_element and not self._should_group_elements(last_element, element):
+                if current_group:
+                    groups.append(current_group)
+                current_group = []
+
+            current_group.append(element)
+            last_element = element
+
+        if current_group:
+            groups.append(current_group)
+
+        return groups
+
+    def _should_group_elements(
+        self, element1: DocumentElement, element2: DocumentElement
+    ) -> bool:
+        """
+        Determine if two elements should be grouped together.
+        """
+        # Same page check
+        if element1.position.page != element2.position.page:
+            return False
+        # Same type check
+        if element1.type != element2.type:
+            return False
+        # Close proximity check
+        vertical_gap = abs(element2.position.y0 - element1.position.y0)
+        average_height = (
+            (element2.position.y1 - element2.position.y0)
+            + (element1.position.y1 - element1.position.y0)
+        ) / 2
+        return vertical_gap < average_height * 0.5
+
+    async def _translate_element_group(
+        self,
+        elements: List[DocumentElement],
+        src_lang: LanguageCode,
+        target_lang: LanguageCode,
+    ) -> List[DocumentElement]:
+        """
+        Translate a group of related elements together for better context.
+        """
+        # Skip non-text elements
+        if not elements or elements[0].type not in [
+            ElementType.TEXT,
+            ElementType.HEADING,
+            ElementType.FOOTER,
+            ElementType.TABLE,
+        ]:
+            return elements
+
+        # Prepare context
+        context = "\n".join([element.content for element in elements])
+        translated_text = await self._translate_with_context(
+            context, src_lang, target_lang
+        )
+
+        # Update translated content
+        for element in elements:
+            element.translated_content = translated_text
+        return elements
