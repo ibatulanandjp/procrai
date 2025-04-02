@@ -7,23 +7,10 @@ router = APIRouter()
 
 
 @router.post("/", summary="Translate document elements with layout preservation")
-async def translate_document(
+async def translate(
     request: TranslationRequest,
     translation_service: TranslationService = Depends(TranslationService),
 ) -> TranslationResponse:
-    """
-    Translate document elements while preserving layout and formatting.
-
-    Args:
-        request: TranslationRequest containing elements to translate
-        translation_service: Injected translation service
-
-    Returns:
-        TranslationResponse containing the translated elements
-
-    Raises:
-        HTTPException: If translation fails
-    """
     try:
         return await translation_service.translate_elements(request)
     except Exception as e:
