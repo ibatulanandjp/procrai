@@ -1,5 +1,6 @@
 from typing import List
 
+import httpx
 from fastapi import HTTPException
 
 from app.api.v1.schemas.document import DocumentElement, ElementType
@@ -106,13 +107,82 @@ class TranslationService:
         ]:
             return elements
 
-        # Prepare context
-        context = "\n".join([element.content for element in elements])
-        translated_text = await self._translate_with_context(
-            context, src_lang, target_lang
-        )
+        translated_elements = []
+        for i, element in enumerate(elements):
+            # Get context from nearby elements
+            start_idx = max(0, i - 2)
+            end_idx = min(len(elements), i + 3)
+            context_elements = elements[start_idx:end_idx]
 
-        # Update translated content
-        for element in elements:
-            element.translated_content = translated_text
-        return elements
+            # Build context string
+            context = "\n".join(
+                "..." if j == i else e.content
+                for j, e in enumerate(context_elements, start=start_idx)
+            )
+
+            print("content to translate", element.content)
+            # Translate with context
+            translated_content = await self._translate_text_with_context(
+                element.content, src_lang, target_lang, context
+            )
+            print("translated_content", translated_content)
+
+            # Create translated element
+            translated_element = element.model_copy()
+            translated_element.translated_content = translated_content
+            translated_elements.append(translated_element)
+
+        return translated_elements
+
+    async def _translate_text_with_context(
+        self,
+        text: str,
+        src_lang: LanguageCode,
+        target_lang: LanguageCode,
+        context: str,
+    ) -> str:
+        """
+        Translate text with context for better accuracy.
+        """
+        prompt = f"""
+        You are a professional document translator.
+        Your goal is to translate the given text accurately while preserving meaning
+        and tone from {src_lang} to {target_lang}.
+
+        Context for better translation:
+        {context}
+
+        Original text (to translate):
+        {text}
+
+        ### Response Format:
+        Provide only the translated text without any additional explanations.
+        """
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.llm_base_url}/api/generate",
+                    json={
+                        "model": self.model,
+                        "prompt": prompt,
+                        "temperature": 0.0,
+                        "stream": False,
+                    },
+                )
+                response.raise_for_status()
+                result = response.json()
+                if "error" in result:
+                    raise ValueError(f"Ollama error: {result['error']}")
+                if "response" not in result:
+                    raise ValueError("No response from Ollama")
+                print("result", result)
+                return result["response"].strip()
+        except httpx.HTTPError as e:
+            raise HTTPException(
+                status_code=502, detail=f"Translation service error: {str(e)}"
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Failed to translate text: {str(e)}"
+            )
