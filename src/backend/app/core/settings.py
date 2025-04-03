@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     OLLAMA_MODEL: str = "llama3.1"
 
     @property
-    def allowed_extensions(self) -> list[str]:
+    def allowed_extensions(self) -> set[str]:
         return set(self.ALLOWED_EXTENSIONS)
 
     model_config = SettingsConfigDict(env_file=".env")

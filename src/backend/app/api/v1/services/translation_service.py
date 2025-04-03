@@ -120,12 +120,10 @@ class TranslationService:
                 for j, e in enumerate(context_elements, start=start_idx)
             )
 
-            print("content to translate", element.content)
             # Translate with context
             translated_content = await self._translate_text_with_context(
                 element.content, src_lang, target_lang, context
             )
-            print("translated_content", translated_content)
 
             # Create translated element
             translated_element = element.model_copy()
@@ -173,10 +171,9 @@ class TranslationService:
                 response.raise_for_status()
                 result = response.json()
                 if "error" in result:
-                    raise ValueError(f"Ollama error: {result['error']}")
+                    raise ValueError(f"LLM error: {result['error']}")
                 if "response" not in result:
-                    raise ValueError("No response from Ollama")
-                print("result", result)
+                    raise ValueError("No response from LLM")
                 return result["response"].strip()
         except httpx.HTTPError as e:
             raise HTTPException(
