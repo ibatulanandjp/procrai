@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.1"
 
+    # Output settings
+    OUTPUT_DIR: str = "outputs"
+
+    # Font settings
+    FONT_DIR: str = "src/backend/fonts"
+
     @property
     def allowed_extensions(self) -> set[str]:
         return set(self.ALLOWED_EXTENSIONS)

@@ -4,3 +4,7 @@ node_modules/
 
 __pycache__/
 uploads/
+outputs/
+
+.DS_Store
+*.log
