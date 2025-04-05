@@ -2,7 +2,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
-import fitz
+import pymupdf
 import pytesseract
 from fastapi import HTTPException
 from PIL import Image
@@ -52,14 +52,15 @@ class OcrService:
             Tuple[List[DocumentElement], int]: Extracted elements and page count
         """
         try:
-            doc = fitz.open(file_path)
+            doc = pymupdf.open(file_path)
             elements = []
             page_count = len(doc)
 
-            for page in doc:
+            for page_num in range(len(doc)):
+                page = doc[page_num]
                 text_dict = page.get_text("dict")
 
-                if text_dict["blocks"]:
+                if "blocks" in text_dict:
                     for block in text_dict["blocks"]:
                         # Process text block
                         if block.get("type") == 0:
@@ -89,12 +90,13 @@ class OcrService:
                                     DocumentElement(
                                         type=ElementType.TEXT,
                                         content=text,
+                                        translated_content="",
                                         position=Position(
-                                            x0=block["bbox"][0],
-                                            y0=block["bbox"][1],
-                                            x1=block["bbox"][2],
-                                            y1=block["bbox"][3],
-                                            page=page.number + 1,
+                                            x0=float(block["bbox"][0]),
+                                            y0=float(block["bbox"][1]),
+                                            x1=float(block["bbox"][2]),
+                                            y1=float(block["bbox"][3]),
+                                            page=page_num + 1,
                                         ),
                                         confidence=1.0,
                                         metadata={
@@ -118,12 +120,13 @@ class OcrService:
                                 DocumentElement(
                                     type=ElementType.IMAGE,
                                     content="",  # No text content for images
+                                    translated_content="",
                                     position=Position(
-                                        x0=block["bbox"][0],
-                                        y0=block["bbox"][1],
-                                        x1=block["bbox"][2],
-                                        y1=block["bbox"][3],
-                                        page=page.number + 1,
+                                        x0=float(block["bbox"][0]),
+                                        y0=float(block["bbox"][1]),
+                                        x1=float(block["bbox"][2]),
+                                        y1=float(block["bbox"][3]),
+                                        page=page_num + 1,
                                     ),
                                     confidence=1.0,
                                     metadata={
@@ -135,11 +138,11 @@ class OcrService:
 
                 else:
                     # If no text blocks, extract elements from image
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-                    image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    pix = page.get_pixmap(matrix=pymupdf.Matrix(2, 2))
+                    image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
 
                     ocr_elements = await self._extract_elements_from_image(
-                        image, page.number + 1
+                        image, page_num + 1
                     )
                     if ocr_elements:
                         elements.extend(ocr_elements)
@@ -174,7 +177,7 @@ class OcrService:
             )
 
     async def _extract_elements_from_image(
-        self, image: Image, page_num: int
+        self, image: Image.Image, page_num: int
     ) -> List[DocumentElement]:
         """
         Extract elements from an image using OCR.
@@ -187,7 +190,7 @@ class OcrService:
             List[DocumentElement]: Extracted elements
         """
         MIN_CONFIDENCE = 30
-        VERTICAL_GAP = 5
+        VERTICAL_GAP = 15
 
         ocr_data = pytesseract.image_to_data(
             image,
@@ -199,12 +202,12 @@ class OcrService:
         elements = []
         current_block = []
         current_block_confidence = []
-        current_coordinates = None
+        current_coordinates: Optional[Position] = None
         last_y = None
         last_height = None
 
         def _create_block_element() -> Optional[DocumentElement]:
-            if not current_block:
+            if not current_block or current_coordinates is None:
                 return None
 
             # Join text preserving newlines based on line numbers
@@ -236,6 +239,7 @@ class OcrService:
             return DocumentElement(
                 type=ElementType.TEXT,
                 content="\n".join(text_with_lines).strip(),
+                translated_content="",
                 position=current_coordinates,
                 confidence=normalized_confidence,
                 metadata={
