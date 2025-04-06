@@ -58,7 +58,7 @@ class OcrService:
 
             for page_num in range(len(doc)):
                 page = doc[page_num]
-                text_dict = page.get_text("dict")
+                text_dict = page.get_text("dict")  # type: ignore
 
                 if "blocks" in text_dict:
                     for block in text_dict["blocks"]:
@@ -138,7 +138,7 @@ class OcrService:
 
                 else:
                     # If no text blocks, extract elements from image
-                    pix = page.get_pixmap(matrix=pymupdf.Matrix(2, 2))
+                    pix = page.get_pixmap(matrix=pymupdf.Matrix(2, 2))  # type: ignore
                     image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
 
                     ocr_elements = await self._extract_elements_from_image(

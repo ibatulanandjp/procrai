@@ -42,7 +42,7 @@ class ReconstructionService:
             for element in elements:
                 # Create a new page if the element is on a new page
                 if current_page is None or element.position.page > doc.page_count:
-                    current_page = doc.new_page()
+                    current_page = doc.new_page()  # type: ignore
                     logger.debug(f"Created new page {doc.page_count}")
 
                 # Insert the text with original position
