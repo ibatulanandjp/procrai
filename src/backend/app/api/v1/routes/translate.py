@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.v1.schemas.translation import TranslationRequest, TranslationResponse
 from app.api.v1.services.translation_service import TranslationService
+from app.core.logging import logger
 
 router = APIRouter()
 
@@ -12,8 +13,17 @@ async def translate(
     translation_service: TranslationService = Depends(TranslationService),
 ) -> TranslationResponse:
     try:
-        return await translation_service.translate_elements(request)
+        logger.info(
+            f"Starting translation from {request.src_lang} to {request.target_lang}"
+        )
+        logger.debug(f"Translation request details: {request}")
+
+        result = await translation_service.translate_elements(request)
+
+        logger.info("Translation completed successfully")
+        return result
     except Exception as e:
+        logger.error(f"Failed to translate document: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to translate document: {str(e)}",

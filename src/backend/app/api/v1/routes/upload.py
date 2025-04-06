@@ -4,6 +4,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.api.v1.schemas.upload import UploadResponse
 from app.core.config import app_config
+from app.core.logging import logger
 
 from ..helpers.file_helpers import is_file_type_allowed
 
@@ -20,26 +21,32 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 async def upload_file(
     file: UploadFile = File(..., description="File to upload"),
 ) -> UploadResponse:
+    logger.info(f"Uploading file: {file.filename}")
 
     # Validate file type
     if not is_file_type_allowed(file, ALLOWED_EXTENSIONS):
+        logger.error(f"File type not allowed: {file.filename}")
         raise HTTPException(
             status_code=400,
             detail="File type not allowed",
         )
 
     # Validate file size
-    if file.size > MAX_FILE_SIZE:
+    if file.size and file.size > MAX_FILE_SIZE:
+        logger.error(f"File size too large: {file.filename}")
         raise HTTPException(
             status_code=400,
             detail="File size too large",
         )
 
     # Save file
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is required")
     file_path = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_path, "wb") as f:
         f.write(file.file.read())
 
+    logger.info(f"File uploaded successfully: {file.filename}")
     return UploadResponse(
         filename=file.filename,
         message="File uploaded",

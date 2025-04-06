@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     OUTPUT_DIR: str = "outputs"
 
     # Font settings
-    FONT_DIR: str = "src/backend/fonts"
+    FONT_DIR: str = "fonts"
 
     @property
     def allowed_extensions(self) -> set[str]:
