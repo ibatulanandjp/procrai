@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.v1.services.ocr_service import OcrService
 from app.core.config import app_config
+from app.core.logging import logger
 
 from ..schemas.ocr import OcrResponse
 
@@ -26,12 +27,18 @@ async def ocr(
         )
 
     try:
+        logger.info(f"Starting OCR processing for file: {filename}")
+        logger.debug(f"OCR request details: filename={filename}")
+
         elements, page_count = await ocr_service.extract_text(file_path)
+
+        logger.info("OCR processing completed successfully")
         return OcrResponse(
             elements=elements,
             page_count=page_count,
         )
     except Exception as e:
+        logger.error(f"Error extracting text from file: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to extract text from file: {str(e)}",

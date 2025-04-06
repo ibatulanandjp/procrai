@@ -1,6 +1,9 @@
 from fastapi import APIRouter
 
+from app.core.logging import logger
+
 router = APIRouter()
+logger.info("API v1 router initialized")
 
 
 @router.get("/", summary="Welcome to Procrai!")
