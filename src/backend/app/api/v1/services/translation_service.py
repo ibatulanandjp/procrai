@@ -13,7 +13,7 @@ from app.core.settings import settings
 
 
 class TranslationService:
-    def __init__(self, model: str = "llama3.1"):
+    def __init__(self, model: str = "gemma3:4b"):
         self.model = model
         self.llm_base_url = settings.OLLAMA_BASE_URL
         self.chunk_size = 1000

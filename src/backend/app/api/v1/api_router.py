@@ -1,6 +1,14 @@
 from fastapi import APIRouter
 
-from app.api.v1.routes import base, download, ocr, reconstruct, translate, upload
+from app.api.v1.routes import (
+    base,
+    download,
+    ocr,
+    reconstruct,
+    translate,
+    upload,
+    workflow,
+)
 
 api_router = APIRouter()
 api_router.include_router(base.router, tags=["base"])
@@ -11,3 +19,5 @@ api_router.include_router(
     reconstruct.router, tags=["reconstruct"], prefix="/reconstruct"
 )
 api_router.include_router(download.router, prefix="/download", tags=["download"])
+
+api_router.include_router(workflow.router, tags=["workflow"], prefix="/workflow")

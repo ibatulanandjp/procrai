@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # Translation settings
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "llama3.1"
+    OLLAMA_MODEL: str = "gemma3:4b"
 
     # Output settings
     OUTPUT_DIR: str = "outputs"

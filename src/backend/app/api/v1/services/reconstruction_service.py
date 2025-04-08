@@ -11,7 +11,7 @@ from app.core.logging import logger
 
 class ReconstructionService:
     def __init__(self) -> None:
-        self.output_dir = os.path.join(app_config.settings.OUTPUT_DIR)
+        self.output_dir = app_config.settings.OUTPUT_DIR
         os.makedirs(self.output_dir, exist_ok=True)
 
         # Set up font path
@@ -32,7 +32,7 @@ class ReconstructionService:
         Reconstruct a PDF with translated text while maintaining the original layout.
         """
         try:
-            logger.info(f"Starting PDF reconstruction for {original_filename}")
+            logger.info(f"Started PDF reconstruction for {original_filename}")
             logger.debug(f"Number of elements to process: {len(elements)}")
 
             # Create a new PDF document
