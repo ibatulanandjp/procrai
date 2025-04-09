@@ -7,7 +7,7 @@ import pytesseract
 from fastapi import HTTPException
 from PIL import Image
 
-from ..schemas.document import DocumentElement, ElementType, Position
+from ..schemas.document import DocumentElement, ElementType, Position, TextAlignment
 
 
 class OcrService:
@@ -86,6 +86,12 @@ class OcrService:
                                     else 0
                                 )
 
+                                # Detect text alignment
+                                text_alignment = self._detect_text_alignment(block)
+
+                                # Detect rotation
+                                rotation = self._detect_rotation(block)
+
                                 elements.append(
                                     DocumentElement(
                                         type=ElementType.TEXT,
@@ -97,6 +103,10 @@ class OcrService:
                                             x1=float(block["bbox"][2]),
                                             y1=float(block["bbox"][3]),
                                             page=page_num + 1,
+                                            rotation=rotation,
+                                            scale=1.0,
+                                            z_index=0,
+                                            text_alignment=text_alignment,
                                         ),
                                         confidence=1.0,
                                         metadata={
@@ -111,6 +121,8 @@ class OcrService:
                                                 if average_font_size > 14
                                                 else "paragraph"
                                             ),
+                                            "line_count": len(lines),
+                                            "word_count": len(text.split()),
                                         },
                                     )
                                 )
@@ -127,6 +139,10 @@ class OcrService:
                                         x1=float(block["bbox"][2]),
                                         y1=float(block["bbox"][3]),
                                         page=page_num + 1,
+                                        rotation=0.0,
+                                        scale=1.0,
+                                        z_index=0,
+                                        text_alignment=None,
                                     ),
                                     confidence=1.0,
                                     metadata={
@@ -154,6 +170,46 @@ class OcrService:
                 status_code=500,
                 detail=f"Failed to process PDF file: {str(e)}",
             )
+
+    def _detect_text_alignment(self, block: dict) -> Optional[TextAlignment]:
+        """
+        Detect text alignment from block properties.
+        """
+        if not block.get("lines"):
+            return None
+
+        # Get the first line's x-coordinates
+        first_line = block["lines"][0]
+        if not first_line.get("spans"):
+            return None
+
+        first_span = first_line["spans"][0]
+        last_span = first_line["spans"][-1]
+        left_margin = first_span["bbox"][0] - block["bbox"][0]
+        right_margin = block["bbox"][2] - last_span["bbox"][2]
+
+        # Determine alignment based on margins
+        if abs(left_margin - right_margin) < 5:  # 5pt tolerance
+            return TextAlignment.CENTER
+        elif left_margin < right_margin:
+            return TextAlignment.LEFT
+        else:
+            return TextAlignment.RIGHT
+
+    def _detect_rotation(self, block: dict) -> float:
+        """
+        Detect text rotation from block properties.
+        """
+        if not block.get("lines"):
+            return 0.0
+
+        # Get rotation from the first span
+        first_line = block["lines"][0]
+        if not first_line.get("spans"):
+            return 0.0
+
+        first_span = first_line["spans"][0]
+        return float(first_span.get("rotation", 0.0))
 
     async def _process_image(
         self, image_bytes: bytes
@@ -191,6 +247,7 @@ class OcrService:
         """
         MIN_CONFIDENCE = 30
         VERTICAL_GAP = 15
+        HORIZONTAL_GAP = 20
 
         ocr_data = pytesseract.image_to_data(
             image,
@@ -205,51 +262,8 @@ class OcrService:
         current_coordinates: Optional[Position] = None
         last_y = None
         last_height = None
-
-        def _create_block_element() -> Optional[DocumentElement]:
-            if not current_block or current_coordinates is None:
-                return None
-
-            # Join text preserving newlines based on line numbers
-            text_with_lines = []
-            current_line = []
-            current_line_num = None
-
-            for text, line_num in current_block:
-                if current_line_num is None:
-                    current_line_num = line_num
-
-                if line_num != current_line_num:
-                    text_with_lines.append(" ".join(current_line))
-                    current_line = [text]
-                    current_line_num = line_num
-                else:
-                    current_line.append(text)
-
-            if current_line:
-                text_with_lines.append(" ".join(current_line))
-
-            average_confidence = sum(current_block_confidence) / len(
-                current_block_confidence
-            )
-            normalized_confidence = average_confidence / 100.0
-
-            # Calculate approximate font size from height
-            font_size = last_height * 0.75 if last_height else 12
-            return DocumentElement(
-                type=ElementType.TEXT,
-                content="\n".join(text_with_lines).strip(),
-                translated_content="",
-                position=current_coordinates,
-                confidence=normalized_confidence,
-                metadata={
-                    "font_size": font_size,
-                    "block_type": ("heading" if font_size > 14 else "paragraph"),
-                    "word_count": len(current_block),
-                    "line_count": len(text_with_lines),
-                    "raw_confidence": average_confidence,
-                },
-            )
+        last_x = None
+        last_width = None
 
         # Process each word
         for i in range(len(ocr_data["text"])):
@@ -261,7 +275,9 @@ class OcrService:
             if not text or confidence <= MIN_CONFIDENCE:
                 # If we have a current block, add it to elements
                 if current_block:
-                    element = _create_block_element()
+                    element = self._create_block_element(
+                        current_block, current_block_confidence, current_coordinates
+                    )
                     if element:
                         elements.append(element)
                     current_block = []
@@ -279,16 +295,26 @@ class OcrService:
             new_block_needed = False
             if last_y is not None:
                 vertical_gap = y0 - (last_y + last_height) if last_height else 0
+                horizontal_gap = (
+                    x0 - (last_x + last_width) if last_x and last_width else 0
+                )
 
                 # Start new block if:
                 # 1. Significant vertical gap (new paragraph)
                 # 2. Moving upward (new column/section)
-                if vertical_gap > VERTICAL_GAP or y0 < last_y:
+                # 3. Significant horizontal gap (new column)
+                if (
+                    vertical_gap > VERTICAL_GAP
+                    or y0 < last_y
+                    or horizontal_gap > HORIZONTAL_GAP
+                ):
                     new_block_needed = True
 
             # Create new block if needed
             if new_block_needed and current_block:
-                element = _create_block_element()
+                element = self._create_block_element(
+                    current_block, current_block_confidence, current_coordinates
+                )
                 if element:
                     elements.append(element)
                 current_block = []
@@ -302,7 +328,15 @@ class OcrService:
             # Update coordinates
             if current_coordinates is None:
                 current_coordinates = Position(
-                    x0=x0, y0=y0, x1=x0 + width, y1=y0 + height, page=page_num
+                    x0=x0,
+                    y0=y0,
+                    x1=x0 + width,
+                    y1=y0 + height,
+                    page=page_num,
+                    rotation=0.0,
+                    scale=1.0,
+                    z_index=0,
+                    text_alignment=None,
                 )
             else:
                 # Expand block boundaries
@@ -314,14 +348,116 @@ class OcrService:
             # Update tracking variables
             last_y = y0
             last_height = height
+            last_x = x0
+            last_width = width
 
         # Add last block if exists
         if current_block:
-            element = _create_block_element()
+            element = self._create_block_element(
+                current_block, current_block_confidence, current_coordinates
+            )
             if element:
                 elements.append(element)
 
         return elements
+
+    def _create_block_element(
+        self,
+        block: List[Tuple[str, int]],
+        block_confidence: List[float],
+        coordinates: Optional[Position],
+    ) -> Optional[DocumentElement]:
+        """
+        Create a DocumentElement from a block of text and its metadata.
+
+        Args:
+            block: List of (text, line_number) tuples
+            block_confidence: List of confidence scores for each text item
+            coordinates: Position object containing block coordinates
+        Returns:
+            Optional[DocumentElement]: Created element or None if block is empty
+        """
+        if not block or coordinates is None:
+            return None
+
+        # Join text preserving newlines based on line numbers
+        text_with_lines = []
+        current_line = []
+        current_line_num = None
+
+        for text, line_num in block:
+            if current_line_num is None:
+                current_line_num = line_num
+
+            if line_num != current_line_num:
+                text_with_lines.append(" ".join(current_line))
+                current_line = [text]
+                current_line_num = line_num
+            else:
+                current_line.append(text)
+
+        if current_line:
+            text_with_lines.append(" ".join(current_line))
+
+        average_confidence = sum(block_confidence) / len(block_confidence)
+        normalized_confidence = average_confidence / 100.0
+
+        # Calculate approximate font size from height
+        font_size = (coordinates.y1 - coordinates.y0) * 0.75
+
+        # Detect text alignment
+        text_alignment = self._detect_text_alignment_from_coords(coordinates, block)
+
+        return DocumentElement(
+            type=ElementType.TEXT,
+            content="\n".join(text_with_lines).strip(),
+            translated_content="",
+            position=Position(
+                x0=coordinates.x0,
+                y0=coordinates.y0,
+                x1=coordinates.x1,
+                y1=coordinates.y1,
+                page=coordinates.page,
+                rotation=coordinates.rotation,
+                scale=coordinates.scale,
+                z_index=coordinates.z_index,
+                text_alignment=text_alignment,
+            ),
+            confidence=normalized_confidence,
+            metadata={
+                "font_size": font_size,
+                "block_type": ("heading" if font_size > 14 else "paragraph"),
+                "word_count": len(block),
+                "line_count": len(text_with_lines),
+                "raw_confidence": average_confidence,
+            },
+        )
+
+    def _detect_text_alignment_from_coords(
+        self, position: Position, block: List[Tuple[str, int]]
+    ) -> Optional[TextAlignment]:
+        """
+        Detect text alignment from coordinates and block data.
+        """
+        if not block:
+            return None
+
+        # Get the first line's x-coordinates
+        first_line = [t for t, ln in block if ln == block[0][1]]
+        if not first_line:
+            return None
+
+        # Calculate margins
+        left_margin = position.x0
+        right_margin = position.x1
+
+        # Determine alignment based on margins
+        if abs(left_margin - right_margin) < 5:  # 5pt tolerance
+            return TextAlignment.CENTER
+        elif left_margin < right_margin:
+            return TextAlignment.LEFT
+        else:
+            return TextAlignment.RIGHT
 
 
 ocr_service = OcrService()
