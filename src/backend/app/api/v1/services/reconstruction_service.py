@@ -16,7 +16,7 @@ class ReconstructionService:
 
         # Set up font path
         self.font_path = os.path.join(
-            app_config.settings.FONT_DIR, "NotoSansCJKsc-Regular.otf"
+            app_config.settings.FONT_DIR, "NotoSansJP-Regular.ttf"
         )
         if not os.path.exists(self.font_path):
             logger.error(f"Specified font file not found at {self.font_path}")
@@ -55,7 +55,7 @@ class ReconstructionService:
                     current_page.insert_text(
                         (element.position.x0, element.position.y0),
                         element.translated_content,
-                        fontname="notosanscjksc",
+                        fontname="notosansjp",
                         fontsize=element.metadata.get("font_size", 11),
                         color=(0, 0, 0),
                         fontfile=self.font_path,
