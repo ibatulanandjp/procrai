@@ -7,6 +7,8 @@ import pytesseract
 from fastapi import HTTPException
 from PIL import Image
 
+from app.core.logging import logger
+
 from ..schemas.document import DocumentElement, ElementType, Position, TextAlignment
 
 
@@ -29,14 +31,19 @@ class OcrService:
         file_path = Path(file_path)
 
         try:
+            logger.info(f"Starting OCR processing for file: {file_path}")
             if file_path.suffix.lower() in [".png", ".jpg", ".jpeg"]:
+                logger.debug("Processing image file")
                 with open(file_path, "rb") as f:
                     return await self._process_image(f.read())
             elif file_path.suffix.lower() == ".pdf":
+                logger.debug("Processing PDF file")
                 return await self._process_pdf(file_path)
             else:
+                logger.error(f"Unsupported file type: {file_path.suffix}")
                 raise ValueError("Unsupported file type for OCR")
         except Exception as e:
+            logger.error(f"Failed to process file: {str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to process file: {str(e)}",
@@ -56,7 +63,10 @@ class OcrService:
             elements = []
             page_count = len(doc)
 
+            logger.info(f"Processing PDF with {page_count} pages")
+
             for page_num in range(len(doc)):
+                logger.debug(f"Processing page {page_num + 1}/{page_count}")
                 page = doc[page_num]
                 text_dict = page.get_text("dict")  # type: ignore
 
@@ -153,6 +163,7 @@ class OcrService:
                             )
 
                 else:
+                    logger.warning(f"No text blocks found in page {page_num + 1}")
                     # If no text blocks, extract elements from image
                     pix = page.get_pixmap(matrix=pymupdf.Matrix(2, 2))  # type: ignore
                     image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
@@ -163,9 +174,11 @@ class OcrService:
                     if ocr_elements:
                         elements.extend(ocr_elements)
 
+            logger.info(f"PDF processing complete. Extracted {len(elements)} elements")
             return elements, page_count
 
         except Exception as e:
+            logger.error(f"Failed to process PDF file: {str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to process PDF file: {str(e)}",
@@ -176,11 +189,13 @@ class OcrService:
         Detect text alignment from block properties.
         """
         if not block.get("lines"):
+            logger.debug("No lines found in block for text alignment detection")
             return None
 
         # Get the first line's x-coordinates
         first_line = block["lines"][0]
         if not first_line.get("spans"):
+            logger.debug("No spans found in first line for text alignment detection")
             return None
 
         first_span = first_line["spans"][0]
@@ -190,10 +205,13 @@ class OcrService:
 
         # Determine alignment based on margins
         if abs(left_margin - right_margin) < 5:  # 5pt tolerance
+            logger.debug("Detected center alignment")
             return TextAlignment.CENTER
         elif left_margin < right_margin:
+            logger.debug("Detected left alignment")
             return TextAlignment.LEFT
         else:
+            logger.debug("Detected right alignment")
             return TextAlignment.RIGHT
 
     def _detect_rotation(self, block: dict) -> float:
@@ -201,15 +219,19 @@ class OcrService:
         Detect text rotation from block properties.
         """
         if not block.get("lines"):
+            logger.debug("No lines found in block for rotation detection")
             return 0.0
 
         # Get rotation from the first span
         first_line = block["lines"][0]
         if not first_line.get("spans"):
+            logger.debug("No spans found in first line for rotation detection")
             return 0.0
 
         first_span = first_line["spans"][0]
-        return float(first_span.get("rotation", 0.0))
+        rotation = float(first_span.get("rotation", 0.0))
+        logger.debug(f"Detected rotation: {rotation} degrees")
+        return rotation
 
     async def _process_image(
         self, image_bytes: bytes
@@ -223,10 +245,13 @@ class OcrService:
             Tuple[List[DocumentElement], int]: Extracted elements and page count
         """
         try:
+            logger.info("Starting image processing")
             image = Image.open(BytesIO(image_bytes)).convert("RGB")
             elements = await self._extract_elements_from_image(image, 1)
+            logger.info(f"Image processing complete Extracted {len(elements)} elements")
             return elements, 1
         except Exception as e:
+            logger.error(f"Failed to process image: {str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to process image: {str(e)}",
@@ -249,6 +274,7 @@ class OcrService:
         VERTICAL_GAP = 15
         HORIZONTAL_GAP = 20
 
+        logger.debug(f"Starting OCR on image with size {image.size}")
         ocr_data = pytesseract.image_to_data(
             image,
             output_type=pytesseract.Output.DICT,
@@ -264,6 +290,8 @@ class OcrService:
         last_height = None
         last_x = None
         last_width = None
+
+        logger.debug(f"Processing {len(ocr_data['text'])} OCR results")
 
         # Process each word
         for i in range(len(ocr_data["text"])):
@@ -359,6 +387,7 @@ class OcrService:
             if element:
                 elements.append(element)
 
+        logger.debug(f"Created {len(elements)} elements from image")
         return elements
 
     def _create_block_element(
@@ -378,6 +407,7 @@ class OcrService:
             Optional[DocumentElement]: Created element or None if block is empty
         """
         if not block or coordinates is None:
+            logger.debug("Skipping empty block or missing coordinates")
             return None
 
         # Join text preserving newlines based on line numbers
@@ -407,6 +437,11 @@ class OcrService:
 
         # Detect text alignment
         text_alignment = self._detect_text_alignment_from_coords(coordinates, block)
+
+        logger.debug(
+            f"Creating block element: lines={len(text_with_lines)}, "
+            f"words={len(block)}, confidence={normalized_confidence:.2f}"
+        )
 
         return DocumentElement(
             type=ElementType.TEXT,
@@ -440,11 +475,13 @@ class OcrService:
         Detect text alignment from coordinates and block data.
         """
         if not block:
+            logger.debug("No block data for text alignment detection")
             return None
 
         # Get the first line's x-coordinates
         first_line = [t for t, ln in block if ln == block[0][1]]
         if not first_line:
+            logger.debug("No first line found for text alignment detection")
             return None
 
         # Calculate margins
@@ -453,10 +490,13 @@ class OcrService:
 
         # Determine alignment based on margins
         if abs(left_margin - right_margin) < 5:  # 5pt tolerance
+            logger.debug("Detected center alignment from coordinates")
             return TextAlignment.CENTER
         elif left_margin < right_margin:
+            logger.debug("Detected left alignment from coordinates")
             return TextAlignment.LEFT
         else:
+            logger.debug("Detected right alignment from coordinates")
             return TextAlignment.RIGHT
 
 

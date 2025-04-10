@@ -15,9 +15,9 @@ class TranslationRequest(BaseModel):
     elements: List[DocumentElement] = Field(
         ..., description="List of elements to translate"
     )
-    src_lang: LanguageCode = Field(LanguageCode.ENGLISH, description="Source language")
+    src_lang: LanguageCode = Field(LanguageCode.JAPANESE, description="Source language")
     target_lang: LanguageCode = Field(
-        LanguageCode.JAPANESE, description="Target language"
+        LanguageCode.ENGLISH, description="Target language"
     )
 
 

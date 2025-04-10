@@ -9,6 +9,7 @@ from app.api.v1.schemas.translation import (
     TranslationRequest,
     TranslationResponse,
 )
+from app.core.logging import logger
 from app.core.settings import settings
 
 
@@ -25,19 +26,38 @@ class TranslationService:
         Translate a list of document elements in a context-aware manner.
         """
         try:
+            logger.info(
+                f"Starting translation from {request.src_lang} to {
+                    request.target_lang
+                }"
+            )
+            logger.debug(f"Processing {len(request.elements)} elements")
+
             # Group elements by type and proximity
             grouped_elements = self._group_elements(request.elements)
+            logger.debug(f"Grouped elements into {len(grouped_elements)} groups")
 
             # Translate each group
             translated_elements = []
-            for group in grouped_elements:
+            for i, group in enumerate(grouped_elements):
+                logger.debug(
+                    f"Translating group {i+1}/{len(grouped_elements)} with {
+                        len(group)
+                    } elements"
+                )
                 translated_group = await self._translate_element_group(
                     group, request.src_lang, request.target_lang
                 )
                 translated_elements.extend(translated_group)
 
+            logger.info(
+                f"Translation completed successfully. Translated {
+                    len(translated_elements)
+                } elements"
+            )
             return TranslationResponse(translated_elements=translated_elements)
         except Exception as e:
+            logger.error(f"Failed to translate elements: {str(e)}")
             raise HTTPException(
                 status_code=500, detail=f"Failed to translate elements: {str(e)}"
             )
@@ -49,6 +69,7 @@ class TranslationService:
         Group elements based on type and proximity for context-aware translation.
         """
         if not elements:
+            logger.warning("No elements provided for grouping")
             return []
 
         groups = []
@@ -105,6 +126,11 @@ class TranslationService:
             ElementType.FOOTER,
             ElementType.TABLE,
         ]:
+            logger.debug(
+                f"Skipping non-text element group of type {
+                    elements[0].type if elements else 'None'
+                }"
+            )
             return elements
 
         translated_elements = []
@@ -118,6 +144,12 @@ class TranslationService:
             context = "\n".join(
                 "..." if j == i else e.content
                 for j, e in enumerate(context_elements, start=start_idx)
+            )
+
+            logger.debug(
+                f"Translating element {i+1}/{
+                    len(elements)
+                } with context length {len(context)}"
             )
 
             # Translate with context
@@ -159,7 +191,12 @@ class TranslationService:
         """
 
         try:
-            async with httpx.AsyncClient() as client:
+            logger.debug(
+                f"Sending translation request to Ollama API for text length {
+                    len(text)
+                }"
+            )
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
                     f"{self.llm_base_url}/api/generate",
                     json={
@@ -172,15 +209,24 @@ class TranslationService:
                 response.raise_for_status()
                 result = response.json()
                 if "error" in result:
+                    logger.error(f"Ollama API error: {result['error']}")
                     raise ValueError(f"LLM error: {result['error']}")
                 if "response" not in result:
+                    logger.error("No response from Ollama API")
                     raise ValueError("No response from LLM")
                 return result["response"].strip()
+        except httpx.TimeoutException as e:
+            logger.error(f"Translation request timed out: {str(e)}")
+            raise HTTPException(
+                status_code=504, detail=f"Translation service timeout: {str(e)}"
+            )
         except httpx.HTTPError as e:
+            logger.error(f"Translation service HTTP error: {str(e)}")
             raise HTTPException(
                 status_code=502, detail=f"Translation service error: {str(e)}"
             )
         except Exception as e:
+            logger.error(f"Unexpected error during translation: {str(e)}")
             raise HTTPException(
                 status_code=500, detail=f"Failed to translate text: {str(e)}"
             )
