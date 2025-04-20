@@ -49,6 +49,85 @@ class OcrService:
                 detail=f"Failed to process file: {str(e)}",
             )
 
+    def _should_merge_blocks(self, block1: dict, block2: dict) -> bool:
+        """
+        Determine if two blocks should be merged into a paragraph.
+        Basic checks for vertical spacing and font consistency.
+        """
+        # Extract and log text content for debugging
+        text1 = " ".join(
+            span["text"]
+            for line in block1.get("lines", [])
+            for span in line.get("spans", [])
+        ).strip()
+        text2 = " ".join(
+            span["text"]
+            for line in block2.get("lines", [])
+            for span in line.get("spans", [])
+        ).strip()
+
+        logger.info("Comparing blocks for merging:")
+        logger.info(f"Block 1 text: {text1}")
+        logger.info(f"Block 2 text: {text2}")
+
+        # Both must be text blocks
+        if block1.get("type") != 0 or block2.get("type") != 0:
+            return False
+
+        # Get font info from first spans
+        span1 = block1.get("lines", [{}])[0].get("spans", [{}])[0]
+        span2 = block2.get("lines", [{}])[0].get("spans", [{}])[0]
+
+        # Check if there is no text
+        if not text1 or not text2:
+            logger.info("One or both blocks have no text")
+            return False
+
+        # Check font consistency
+        if span1.get("font") != span2.get("font"):
+            logger.info(f"Font mismatch: {span1.get('font')} != {span2.get('font')}")
+            return False
+
+        # Font size should be similar (within 1pt)
+        font_size1 = span1.get("size", 0)
+        font_size2 = span2.get("size", 0)
+        if abs(font_size1 - font_size2) > 1:
+            logger.info(f"Font size difference too large: {font_size1} vs {font_size2}")
+            return False
+
+        # Calculate visual spacing using font metrics
+        block1_height = block1["bbox"][3] - block1["bbox"][1]
+        block2_height = block2["bbox"][3] - block2["bbox"][1]
+        visual_spacing = block2["bbox"][1] - block1["bbox"][3]
+        avg_line_height = (block1_height + block2_height) / 2
+        spacing_ratio = visual_spacing / avg_line_height
+
+        logger.info(
+            f"Block analysis:\n"
+            f"  Block1 top: {block1['bbox'][1]:.2f}\n"
+            f"  Block1 bottom: {block1['bbox'][3]:.2f}\n"
+            f"  Block1 height: {block1_height:.2f}\n"
+            f"  Font size: {font_size1:.2f}\n"
+            f"  Block2 top: {block2['bbox'][1]:.2f}\n"
+            f"  Block2 bottom: {block2['bbox'][3]:.2f}\n"
+            f"  Block2 height: {block2_height:.2f}\n"
+            f"  Font size: {font_size2:.2f}\n"
+            f"  Space: {visual_spacing:.2f}\n"
+            f"  Line h: {avg_line_height:.2f}\n"
+            f"  Ratio: {spacing_ratio:.2f}"
+        )
+
+        # Merge if spacing is less than threshold of the average line height
+        if spacing_ratio > 0.6:
+            logger.info(
+                f"Space too large: "
+                f"{visual_spacing:.2f}px > {0.6 * avg_line_height:.2f}px"
+            )
+            return False
+
+        logger.info("Blocks merged based on spacing and font consistency")
+        return True
+
     async def _process_pdf(self, file_path: Path) -> Tuple[List[DocumentElement], int]:
         """
         Process a PDF file and extract elements with layout information.
@@ -71,9 +150,36 @@ class OcrService:
                 text_dict = page.get_text("dict")  # type: ignore
 
                 if "blocks" in text_dict:
-                    for block in text_dict["blocks"]:
-                        # Process text block
-                        if block.get("type") == 0:
+                    # Group blocks into paragraphs
+                    current_blocks = []
+                    text_blocks = [b for b in text_dict["blocks"] if b.get("type") == 0]
+
+                    for block in text_blocks:
+                        if not current_blocks or not self._should_merge_blocks(
+                            current_blocks[-1], block
+                        ):
+                            current_blocks.append(block)
+                        else:
+                            # Merge with previous block
+                            prev_block = current_blocks[-1]
+                            # Combine lines
+                            prev_block["lines"].extend(block.get("lines", []))
+                            # Update bounding box
+                            prev_block["bbox"] = (
+                                min(prev_block["bbox"][0], block["bbox"][0]),  # x0
+                                min(prev_block["bbox"][1], block["bbox"][1]),  # y0
+                                max(prev_block["bbox"][2], block["bbox"][2]),  # x1
+                                max(prev_block["bbox"][3], block["bbox"][3]),  # y1
+                            )
+                            # Update font size with max of both
+                            prev_block["lines"][0]["spans"][0]["size"] = max(
+                                prev_block["lines"][0]["spans"][0]["size"],
+                                block["lines"][0]["spans"][0]["size"],
+                            )
+
+                    # Process merged blocks
+                    for block in current_blocks:
+                        if block.get("type") == 0:  # Text block
                             lines = []
                             for line in block.get("lines", []):
                                 line_text = " ".join(
