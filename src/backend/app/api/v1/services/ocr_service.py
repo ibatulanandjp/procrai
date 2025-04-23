@@ -273,10 +273,10 @@ class OcrService:
         )
 
         # Merge if spacing is less than threshold of the average line height
-        if spacing_ratio > 0.6:
+        if spacing_ratio > 0.65:
             logger.debug(
                 f"Space too large: "
-                f"{visual_spacing:.2f}px > {0.6 * avg_line_height:.2f}px"
+                f"{visual_spacing:.2f}px > {0.65 * avg_line_height:.2f}px"
             )
             return False
 
@@ -303,7 +303,7 @@ class OcrService:
         right_margin = block["bbox"][2] - last_span["bbox"][2]
 
         # Determine alignment based on margins
-        if abs(left_margin - right_margin) < 5:  # 5pt tolerance
+        if abs(left_margin - right_margin) < 2:  # 2pt tolerance
             logger.debug("Detected center alignment")
             return TextAlignment.CENTER
         elif left_margin < right_margin:
