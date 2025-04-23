@@ -14,7 +14,7 @@ class ReconstructionService:
         self.output_dir = app_config.settings.OUTPUT_DIR
         os.makedirs(self.output_dir, exist_ok=True)
 
-        # Set up font path
+        # Set up font path for Japanese
         self.font_path = os.path.join(
             app_config.settings.FONT_DIR, "NotoSansJP-Regular.ttf"
         )
@@ -22,6 +22,26 @@ class ReconstructionService:
             logger.error(f"Specified font file not found at {self.font_path}")
             raise RuntimeError(f"Font file not found at {self.font_path}")
         logger.info(f"Using font file: {self.font_path}")
+
+    def _is_japanese_text(self, text: str) -> bool:
+        """Check if text contains Japanese characters."""
+        if not text:
+            return False
+        # Check for Japanese characters (Hiragana, Katakana, Kanji)
+        for char in text:
+            if (
+                "\u3040" <= char <= "\u309f"  # Hiragana
+                or "\u30a0" <= char <= "\u30ff"  # Katakana
+                or "\u4e00" <= char <= "\u9fff"  # Kanji
+            ):
+                return True
+        return False
+
+    def _get_font_settings(self, text: str) -> tuple[str, str | None]:
+        """Get appropriate font settings based on text content."""
+        if self._is_japanese_text(text):
+            return "notosansjp", self.font_path
+        return "helv", None
 
     async def reconstruct_pdf(
         self,
@@ -38,19 +58,24 @@ class ReconstructionService:
             # Create a new PDF document
             doc = pymupdf.open()
             current_page = None
+            height_adjustment = 0.0  # Track cumulative height adjustments
 
             for element in elements:
                 # Create a new page if the element is on a new page
                 if current_page is None or element.position.page > doc.page_count:
                     current_page = doc.new_page()  # type: ignore
+                    height_adjustment = 0.0  # Reset height adjustment for new page
                     logger.debug(f"Created new page {doc.page_count}")
 
                 # Insert the text with original position and bounding box
                 if element.type == ElementType.TEXT:
-                    logger.info(f"Inserting {element.translated_content}")
+                    text = element.translated_content or ""
 
                     # Get font size from metadata
                     font_size = element.metadata.get("font_size", 11)
+
+                    # Get appropriate font settings
+                    fontname, fontfile = self._get_font_settings(text)
 
                     # Map text alignment to PyMuPDF values
                     alignment_map = {
@@ -71,63 +96,77 @@ class ReconstructionService:
                     )
 
                     if is_single_line:
-                        logger.info(f"Inserting single line text at {element.position}")
+                        logger.info(f"Inserting text: {text}\nType: single line text")
+                        logger.info(f"Position: {element.position}")
                         # For single lines, use insert_text with exact positioning
                         current_page.insert_text(
-                            (element.position.x0, element.position.y0 + font_size),
-                            element.translated_content or "",
-                            fontname="notosansjp",
+                            (
+                                element.position.x0,
+                                element.position.y0 + height_adjustment,
+                            ),
+                            text,
+                            fontname=fontname,
                             fontsize=font_size,
-                            fontfile=self.font_path,
+                            fontfile=fontfile,
                             color=(0, 0, 0),
                         )
                     else:
-                        logger.info(f"Inserting multi-line text at {element.position}")
+                        logger.info(f"Inserting text: {text}\nType: multiline text")
+                        logger.info(f"Position: {element.position}")
                         # For multi-line text, use textbox with proper dimensions
                         text_box = pymupdf.Rect(
                             element.position.x0,
-                            element.position.y0,
+                            element.position.y0 + height_adjustment,
                             element.position.x1,
-                            element.position.y1,
+                            element.position.y1 + height_adjustment,
                         )
 
                         # Try to insert text and get required height
                         required_height = current_page.insert_textbox(
                             text_box,
-                            element.translated_content or "",
-                            fontname="notosansjp",
+                            text,
+                            fontname=fontname,
                             fontsize=font_size,
-                            fontfile=self.font_path,
+                            fontfile=fontfile,
                             color=(0, 0, 0),
                             align=alignment,
                             border_width=1,
                         )
 
-                        # If text doesn't fit, adjust the box height
-                        if required_height > 0:
+                        # If text doesn't fit (negative return value), adjust the box
+                        if required_height < 0:
                             logger.warning(
                                 f"Text overflow detected. Required height: {
-                                    required_height
+                                    abs(required_height)
                                 }"
                             )
+
                             # Create a new text box with adjusted height
                             adjusted_box = pymupdf.Rect(
                                 element.position.x0,
-                                element.position.y0,
+                                element.position.y0 + height_adjustment,
                                 element.position.x1,
-                                element.position.y0 + required_height,
+                                element.position.y1
+                                + height_adjustment
+                                + abs(required_height),
                             )
+
+                            logger.info(f"Inserting text: {text}\nType: multiline text")
+                            logger.info(f"Adjusted Position: {adjusted_box}")
                             # Try inserting again with adjusted box
                             current_page.insert_textbox(
                                 adjusted_box,
-                                element.translated_content or "",
-                                fontname="notosansjp",
+                                text,
+                                fontname=fontname,
                                 fontsize=font_size,
-                                fontfile=self.font_path,
+                                fontfile=fontfile,
                                 color=(0, 0, 0),
                                 align=alignment,
                                 border_width=1,
                             )
+
+                            # Update height adjustment for subsequent elements
+                            height_adjustment += abs(required_height)
 
             output_filename = f"translated_{os.path.splitext(original_filename)[0]}.pdf"
             output_path = os.path.join(self.output_dir, output_filename)
