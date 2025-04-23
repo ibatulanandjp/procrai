@@ -175,7 +175,7 @@ class TranslationService:
         Translate text with context for better accuracy.
         """
         prompt = f"""
-        You are a professional document translator.
+        You are a professional document translator for financial documents.
         Your goal is to translate the given text accurately while preserving meaning
         and tone from {src_lang} to {target_lang}.
         Keep the number of words similar to the original text.
