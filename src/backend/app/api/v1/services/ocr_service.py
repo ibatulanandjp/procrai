@@ -1,3 +1,4 @@
+from collections import Counter
 from io import BytesIO
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
@@ -13,7 +14,7 @@ from ..schemas.document import DocumentElement, ElementType, Position, TextAlign
 
 
 class OcrService:
-    def __init__(self, ocr_engine: str = "tesseract", language: str = "eng"):
+    def __init__(self, ocr_engine: str = "tesseract", language: str = "ja"):
         self.ocr_engine = ocr_engine
         self.language = language
 
@@ -123,8 +124,35 @@ class OcrService:
                                     else 0
                                 )
 
-                                # Detect text alignment
-                                text_alignment = self._detect_text_alignment(block)
+                                # text_alignment = self._detect_text_alignment(block)
+                                # logger.info(
+                                #     f"Detected text {text} aligned: {text_alignment}")
+
+                                alignments = []
+                                for line in block.get("lines", []):
+                                    if line.get("spans"):
+                                        first_span = line["spans"][0]
+                                        last_span = line["spans"][-1]
+                                        left_margin = (
+                                            first_span["bbox"][0] - block["bbox"][0]
+                                        )
+                                        right_margin = (
+                                            block["bbox"][2] - last_span["bbox"][2]
+                                        )
+
+                                        if abs(left_margin - right_margin) < 2:
+                                            alignments.append(TextAlignment.CENTER)
+                                        elif left_margin < right_margin:
+                                            alignments.append(TextAlignment.LEFT)
+                                        else:
+                                            alignments.append(TextAlignment.RIGHT)
+
+                                alignment_counts = Counter(alignments)
+                                text_alignment = (
+                                    alignment_counts.most_common(1)[0][0]
+                                    if alignments
+                                    else None
+                                )
 
                                 # Detect rotation
                                 rotation = self._detect_rotation(block)
@@ -287,6 +315,7 @@ class OcrService:
         """
         Detect text alignment from block properties.
         """
+        logger.info(f"Detecting text alignment for block {block}")
         if not block.get("lines"):
             logger.debug("No lines found in block for text alignment detection")
             return None
@@ -302,8 +331,11 @@ class OcrService:
         left_margin = first_span["bbox"][0] - block["bbox"][0]
         right_margin = block["bbox"][2] - last_span["bbox"][2]
 
+        # Set a tolerance for alignment detection
+        tolerance = 3.0
+
         # Determine alignment based on margins
-        if abs(left_margin - right_margin) < 2:  # 2pt tolerance
+        if abs(left_margin - right_margin) < tolerance:
             logger.debug("Detected center alignment")
             return TextAlignment.CENTER
         elif left_margin < right_margin:
