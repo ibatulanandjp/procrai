@@ -3,14 +3,15 @@ from typing import List
 import httpx
 from fastapi import HTTPException
 
-from app.api.v1.schemas.document import DocumentElement, ElementType
-from app.api.v1.schemas.translation import (
+from app.core.logging import logger
+from app.core.settings import settings
+
+from ..schemas.document import DocumentElement, ElementType
+from ..schemas.translation import (
     LanguageCode,
     TranslationRequest,
     TranslationResponse,
 )
-from app.core.logging import logger
-from app.core.settings import settings
 
 
 class TranslationService:
