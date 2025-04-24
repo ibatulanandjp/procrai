@@ -96,8 +96,8 @@ class ReconstructionService:
                     )
 
                     if is_single_line:
-                        logger.info(f"Inserting text: {text}\nType: single line text")
-                        logger.info(f"Position: {element.position}")
+                        logger.debug(f"Inserting text: {text}\nType: single line")
+                        logger.debug(f"Position: {element.position}")
                         # For single lines, use insert_text with exact positioning
                         current_page.insert_text(
                             (
@@ -111,8 +111,8 @@ class ReconstructionService:
                             color=(0, 0, 0),
                         )
                     else:
-                        logger.info(f"Inserting text: {text}\nType: multiline text")
-                        logger.info(f"Position: {element.position}")
+                        logger.debug(f"Inserting text: {text}\nType: multiline")
+                        logger.debug(f"Position: {element.position}")
                         # For multi-line text, use textbox with proper dimensions
                         text_box = pymupdf.Rect(
                             element.position.x0,
@@ -151,8 +151,8 @@ class ReconstructionService:
                                 + abs(required_height),
                             )
 
-                            logger.info(f"Inserting text: {text}\nType: multiline text")
-                            logger.info(f"Adjusted Position: {adjusted_box}")
+                            logger.debug(f"Inserting text: {text}\nType: multiline")
+                            logger.debug(f"Adjusted Position: {adjusted_box}")
                             # Try inserting again with adjusted box
                             current_page.insert_textbox(
                                 adjusted_box,

@@ -124,10 +124,7 @@ class OcrService:
                                     else 0
                                 )
 
-                                # text_alignment = self._detect_text_alignment(block)
-                                # logger.info(
-                                #     f"Detected text {text} aligned: {text_alignment}")
-
+                                # Detect text alignment
                                 alignments = []
                                 for line in block.get("lines", []):
                                     if line.get("spans"):
@@ -196,7 +193,7 @@ class OcrService:
                             elements.append(
                                 DocumentElement(
                                     type=ElementType.IMAGE,
-                                    content="",  # No text content for images
+                                    content="",
                                     translated_content="",
                                     position=Position(
                                         x0=float(block["bbox"][0]),
@@ -244,7 +241,7 @@ class OcrService:
         Determine if two blocks should be merged into a paragraph.
         Basic checks for vertical spacing and font consistency.
         """
-        logger.info("Comparing blocks for merging")
+        logger.debug("Comparing blocks for merging")
 
         # Both must be text blocks
         if block1.get("type") != 0 or block2.get("type") != 0:
@@ -263,19 +260,19 @@ class OcrService:
 
         # Check if there is no text
         if not text1 or not text2:
-            logger.info("One or both blocks have no text")
+            logger.debug("One or both blocks have no text")
             return False
 
         # Check font consistency
         if span1.get("font") != span2.get("font"):
-            logger.info(f"Font mismatch: {span1.get('font')} != {span2.get('font')}")
+            logger.debug(f"Font mismatch: {span1.get('font')} != {span2.get('font')}")
             return False
 
         # Font size should be similar (within 1pt)
         font_size1 = span1.get("size", 0)
         font_size2 = span2.get("size", 0)
         if abs(font_size1 - font_size2) > 1:
-            logger.info(f"Font size difference too large: {font_size1} vs {font_size2}")
+            logger.debug(f"Font size difference too big: {font_size1} vs {font_size2}")
             return False
 
         # Calculate visual spacing using font metrics
@@ -308,7 +305,7 @@ class OcrService:
             )
             return False
 
-        logger.info("Blocks merged based on spacing and font consistency")
+        logger.debug("Blocks merged based on spacing and font consistency")
         return True
 
     def _detect_text_alignment(self, block: dict) -> Optional[TextAlignment]:

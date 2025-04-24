@@ -15,8 +15,8 @@ UPLOAD_DIR = app_config.settings.UPLOAD_DIR
 @router.post("/process", summary="Process a document through the workflow")
 async def process_document(
     file: UploadFile = File(...),
-    src_lang: str = "en",
-    target_lang: str = "ja",
+    src_lang: str = "ja",
+    target_lang: str = "en",
     workflow_service: WorkflowService = Depends(WorkflowService),
 ) -> FileResponse:
     """
@@ -26,8 +26,6 @@ async def process_document(
     Returns the final PDF file.
     """
     try:
-        logger.info(f"Starting document processing workflow for {file.filename}")
-
         logger.info(f"Uploading file: {file.filename}")
 
         if not file.filename:
