@@ -28,7 +28,6 @@ async def ocr(
 
     try:
         logger.debug(f"OCR request details: filename={filename}")
-
         elements, page_count = await ocr_service.extract_text(file_path)
 
         logger.info("OCR processing completed successfully")
