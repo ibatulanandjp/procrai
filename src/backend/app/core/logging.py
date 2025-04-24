@@ -3,7 +3,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 
-def setup_logging():
+def setup_logging() -> logging.Logger:
     """Configure logging for the application."""
     # Create logs directory if it doesn't exist
     log_dir = Path("logs")
