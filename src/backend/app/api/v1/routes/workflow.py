@@ -27,7 +27,6 @@ async def process_document(
     """
     try:
         logger.info(f"Uploading file: {file.filename}")
-
         if not file.filename:
             raise HTTPException(status_code=400, detail="Filename is required")
 

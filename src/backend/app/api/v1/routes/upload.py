@@ -21,33 +21,51 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 async def upload_file(
     file: UploadFile = File(..., description="File to upload"),
 ) -> UploadResponse:
-    logger.info(f"Uploading file: {file.filename}")
+    try:
+        if not file.filename:
+            raise HTTPException(
+                status_code=400,
+                detail="Filename is required",
+            )
 
-    # Validate file type
-    if not is_file_type_allowed(file, ALLOWED_EXTENSIONS):
-        logger.error(f"File type not allowed: {file.filename}")
-        raise HTTPException(
-            status_code=400,
-            detail="File type not allowed",
+        logger.info(f"Starting upload for file: {file.filename}")
+
+        # Validate file type
+        if not is_file_type_allowed(file, ALLOWED_EXTENSIONS):
+            logger.error(f"Invalid file type for: {file.filename}")
+            allowed_types = ", ".join(ALLOWED_EXTENSIONS)
+            raise HTTPException(
+                status_code=400,
+                detail=f"File type not allowed. Allowed types: {allowed_types}",
+            )
+
+        # Validate file size
+        if file.size and file.size > MAX_FILE_SIZE:
+            logger.error(
+                f"File size {file.size} bytes exceeds limit for: {file.filename}"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"File size too large. Maximum size: {MAX_FILE_SIZE} bytes",
+            )
+
+        # Save file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="Filename is required")
+        file_path = os.path.join(UPLOAD_DIR, file.filename)
+        with open(file_path, "wb") as f:
+            f.write(file.file.read())
+
+        logger.info(f"File uploaded successfully: {file.filename}")
+        return UploadResponse(
+            filename=file.filename,
+            message="File uploaded successfully",
         )
-
-    # Validate file size
-    if file.size and file.size > MAX_FILE_SIZE:
-        logger.error(f"File size too large: {file.filename}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading file: {str(e)}")
         raise HTTPException(
-            status_code=400,
-            detail="File size too large",
+            status_code=500,
+            detail="Internal server error while uploading file",
         )
-
-    # Save file
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="Filename is required")
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    with open(file_path, "wb") as f:
-        f.write(file.file.read())
-
-    logger.info(f"File uploaded successfully: {file.filename}")
-    return UploadResponse(
-        filename=file.filename,
-        message="File uploaded",
-    )

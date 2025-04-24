@@ -20,8 +20,6 @@ async def reconstruct_document(
     """
     try:
         logger.info(f"Starting PDF reconstruction for {request.original_filename}")
-        logger.debug(f"Reconstruction request details: {request}")
-
         output_filename = await reconstruction_service.reconstruct_pdf(
             elements=request.elements,
             original_filename=request.original_filename,

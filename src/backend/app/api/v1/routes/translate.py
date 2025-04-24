@@ -16,8 +16,6 @@ async def translate(
         logger.info(
             f"Starting translation from {request.src_lang} to {request.target_lang}"
         )
-        logger.debug(f"Translation request details: {request}")
-
         result = await translation_service.translate_elements(request)
 
         logger.info("Translation completed successfully")
