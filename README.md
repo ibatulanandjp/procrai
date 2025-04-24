@@ -5,13 +5,15 @@ Procrai is a revolutionary document translation platform that combines state-of-
 
 ## Why Procrai?
 
-In today's globalized business environment, organizations frequently need to translate sensitive documents - financial reports, legal contracts, medical records, and more. Traditional translation services often require uploading documents to third-party servers, creating significant security and compliance risks. Procrai solves this by enabling:
+Traditional translation services compromise security by requiring document uploads to third-party servers. Procrai eliminates these risks by enabling:
 
 - 🔒 **Complete Data Privacy**: Process documents entirely on your local infrastructure
-- 🏢 **Enterprise-Ready**: Perfect for financial institutions, legal firms, and healthcare providers
 - 📊 **Layout Preservation**: Maintains exact document formatting and structure
 - 🤖 **AI-Powered**: Leverages cutting-edge LLMs for accurate, context-aware translations
 - ⚡ **Flexible Deployment**: Choose between local open-source models or cloud-based solutions
+
+## Sample Results
+![Sample Result](/docs/images/en_jp_translation.png)
 
 ## Real-World Applications
 
@@ -20,9 +22,6 @@ In today's globalized business environment, organizations frequently need to tra
 - **Healthcare**: Translate medical records and research papers while complying with privacy regulations
 - **Government**: Handle sensitive diplomatic and policy documents with complete control over data
 - **Research**: Translate academic papers and technical documentation while preserving complex formatting
-
-## Sample Results
-![Sample Result](/docs/images/en_jp_translation.png)
 
 ## Technical Specifications
 
