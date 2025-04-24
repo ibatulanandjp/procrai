@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.routes import (
+from .routes import (
     base,
     download,
     ocr,

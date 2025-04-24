@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.schemas.translation import TranslationRequest, TranslationResponse
-from app.api.v1.services.translation_service import TranslationService
 from app.core.logging import logger
+
+from ..schemas.translation import TranslationRequest, TranslationResponse
+from ..services.translation_service import TranslationService
 
 router = APIRouter()
 

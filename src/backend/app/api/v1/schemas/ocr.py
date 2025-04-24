@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from app.api.v1.schemas.document import DocumentElement
+from ..schemas.document import DocumentElement
 
 
 class OcrResponse(BaseModel):

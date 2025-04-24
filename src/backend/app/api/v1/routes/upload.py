@@ -2,11 +2,11 @@ import os
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from app.api.v1.schemas.upload import UploadResponse
 from app.core.config import app_config
 from app.core.logging import logger
 
 from ..helpers.file_helpers import is_file_type_allowed
+from ..schemas.upload import UploadResponse
 
 router = APIRouter()
 

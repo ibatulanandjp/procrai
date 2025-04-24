@@ -2,11 +2,11 @@ import os
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.services.ocr_service import OcrService
 from app.core.config import app_config
 from app.core.logging import logger
 
 from ..schemas.ocr import OcrResponse
+from ..services.ocr_service import OcrService
 
 router = APIRouter()
 

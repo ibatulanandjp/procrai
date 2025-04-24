@@ -2,10 +2,10 @@ import os
 
 from fastapi import HTTPException
 
-from app.api.v1.schemas.translation import LanguageCode, TranslationRequest
 from app.core.config import app_config
 from app.core.logging import logger
 
+from ..schemas.translation import LanguageCode, TranslationRequest
 from .ocr_service import OcrService
 from .reconstruction_service import ReconstructionService
 from .translation_service import TranslationService

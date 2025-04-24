@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.schemas.reconstruction import (
+from app.core.logging import logger
+
+from ..schemas.reconstruction import (
     ReconstructionRequest,
     ReconstructionResponse,
 )
-from app.api.v1.services.reconstruction_service import ReconstructionService
-from app.core.logging import logger
+from ..services.reconstruction_service import ReconstructionService
 
 router = APIRouter()
 
