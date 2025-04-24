@@ -134,10 +134,11 @@ class TranslationService:
             return elements
 
         translated_elements = []
+        context_window = 3
         for i, element in enumerate(elements):
             # Get context from nearby elements
-            start_idx = max(0, i - 2)
-            end_idx = min(len(elements), i + 3)
+            start_idx = max(0, i - context_window)
+            end_idx = min(len(elements), i + context_window + 1)
             context_elements = elements[start_idx:end_idx]
 
             # Build context string
