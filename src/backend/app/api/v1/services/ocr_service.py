@@ -8,15 +8,16 @@ import pytesseract
 from fastapi import HTTPException
 from PIL import Image
 
+from app.core.config import app_config
 from app.core.logging import logger
 
 from ..schemas.document import DocumentElement, ElementType, Position, TextAlignment
 
 
 class OcrService:
-    def __init__(self, ocr_engine: str = "tesseract", language: str = "ja"):
-        self.ocr_engine = ocr_engine
-        self.language = language
+    def __init__(self):
+        self.ocr_engine = app_config.settings.OCR_ENGINE
+        self.language = app_config.settings.OCR_LANGUAGE
 
     async def extract_text(
         self, file_path: Union[Path, str]
