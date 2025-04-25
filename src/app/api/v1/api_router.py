@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-from .routes import (base, download, ocr, reconstruct, translate, upload,
-                     workflow)
+from .routes import base, download, ocr, reconstruct, translate, upload, workflow
 
 api_router = APIRouter()
 

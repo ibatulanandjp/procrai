@@ -4,8 +4,7 @@ from typing import List
 import pymupdf
 from fastapi import HTTPException
 
-from app.api.v1.schemas.document import (DocumentElement, ElementType,
-                                         TextAlignment)
+from app.api.v1.schemas.document import DocumentElement, ElementType, TextAlignment
 from app.core.config import app_config
 from app.core.logging import logger
 

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.schemas.reconstruction import (ReconstructionRequest,
-                                               ReconstructionResponse)
+from app.api.v1.schemas.reconstruction import (
+    ReconstructionRequest,
+    ReconstructionResponse,
+)
 from app.api.v1.services.reconstruction_service import ReconstructionService
 from app.core.logging import logger
 
@@ -15,6 +17,13 @@ async def reconstruct_document(
 ) -> ReconstructionResponse:
     """
     Reconstruct a PDF with translated text while maintaining the original layout.
+
+    Args:
+        request: ReconstructionRequest object containing elements and original filename
+    Returns:
+        ReconstructionResponse: Response containing reconstruction status
+    Raises:
+        HTTPException: If the reconstruction fails
     """
     try:
         logger.info(f"Starting PDF reconstruction for {request.original_filename}")

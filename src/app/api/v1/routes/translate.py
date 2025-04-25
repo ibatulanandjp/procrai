@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.v1.schemas.translation import (TranslationRequest,
-                                            TranslationResponse)
+from app.api.v1.schemas.translation import TranslationRequest, TranslationResponse
 from app.api.v1.services.translation_service import TranslationService
 from app.core.logging import logger
 
@@ -13,6 +12,16 @@ async def translate(
     request: TranslationRequest,
     translation_service: TranslationService = Depends(TranslationService),
 ) -> TranslationResponse:
+    """
+    Translate document elements while preserving layout.
+
+    Args:
+        request: TranslationRequest object containing source and target languages
+    Returns:
+        TranslationResponse: Response containing translation status
+    Raises:
+        HTTPException: If the translation fails
+    """
     try:
         logger.info(
             f"Starting translation from {request.src_lang} to {request.target_lang}"
