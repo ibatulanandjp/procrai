@@ -3,11 +3,10 @@ from typing import List, Tuple, Union
 
 from fastapi import HTTPException
 
-from app.core.logging import logger
-
 from app.api.v1.schemas.document import DocumentElement
 from app.api.v1.services.ocr.image_service import image_service
 from app.api.v1.services.ocr.pdf_service import pdf_service
+from app.core.logging import logger
 
 
 class OcrService:
