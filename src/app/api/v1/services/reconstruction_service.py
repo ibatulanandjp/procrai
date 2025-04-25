@@ -4,9 +4,10 @@ from typing import List
 import pymupdf
 from fastapi import HTTPException
 
+from app.api.v1.schemas.document import (DocumentElement, ElementType,
+                                         TextAlignment)
 from app.core.config import app_config
 from app.core.logging import logger
-from app.api.v1.schemas.document import DocumentElement, ElementType, TextAlignment
 
 
 class ReconstructionService:
@@ -19,9 +20,9 @@ class ReconstructionService:
             app_config.settings.FONT_DIR, "NotoSansJP-Regular.ttf"
         )
         if not os.path.exists(self.font_path):
-            logger.error(f"Specified font file not found at {self.font_path}")
+            logger.error("Specified font file not found at %s", self.font_path)
             raise RuntimeError(f"Font file not found at {self.font_path}")
-        logger.info(f"Using font file: {self.font_path}")
+        logger.info("Using font file: %s", self.font_path)
 
     def _is_japanese_text(self, text: str) -> bool:
         """Check if text contains Japanese characters."""
@@ -52,8 +53,8 @@ class ReconstructionService:
         Reconstruct a PDF with translated text while maintaining the original layout.
         """
         try:
-            logger.info(f"Started PDF reconstruction for {original_filename}")
-            logger.debug(f"Number of elements to process: {len(elements)}")
+            logger.info("Started PDF reconstruction for %s", original_filename)
+            logger.debug("Number of elements to process: %d", len(elements))
 
             # Create a new PDF document
             doc = pymupdf.open()
@@ -65,7 +66,7 @@ class ReconstructionService:
                 if current_page is None or element.position.page > doc.page_count:
                     current_page = doc.new_page()  # type: ignore
                     height_adjustment = 0.0  # Reset height adjustment for new page
-                    logger.debug(f"Created new page {doc.page_count}")
+                    logger.debug("Created new page %d", doc.page_count)
 
                 # Insert the text with original position and bounding box
                 if element.type == ElementType.TEXT:
@@ -96,8 +97,8 @@ class ReconstructionService:
                     )
 
                     if is_single_line:
-                        logger.debug(f"Inserting text: {text}\nType: single line")
-                        logger.debug(f"Position: {element.position}")
+                        logger.debug("Inserting text: %s\nType: single line", text)
+                        logger.debug("Position: %s", element.position)
                         # For single lines, use insert_text with exact positioning
                         current_page.insert_text(
                             (
@@ -111,8 +112,8 @@ class ReconstructionService:
                             color=(0, 0, 0),
                         )
                     else:
-                        logger.debug(f"Inserting text: {text}\nType: multiline")
-                        logger.debug(f"Position: {element.position}")
+                        logger.debug("Inserting text: %s\nType: multiline", text)
+                        logger.debug("Position: %s", element.position)
                         # For multi-line text, use textbox with proper dimensions
                         text_box = pymupdf.Rect(
                             element.position.x0,
@@ -136,7 +137,8 @@ class ReconstructionService:
                         # If text doesn't fit (negative return value), adjust the box
                         if required_height < 0:
                             logger.warning(
-                                f"Text overflow detected. Required height: {abs(required_height)}"
+                                "Text overflow detected. Required height: %f",
+                                abs(required_height),
                             )
 
                             # Create a new text box with adjusted height
@@ -149,8 +151,8 @@ class ReconstructionService:
                                 + abs(required_height),
                             )
 
-                            logger.debug(f"Inserting text: {text}\nType: multiline")
-                            logger.debug(f"Adjusted Position: {adjusted_box}")
+                            logger.debug("Inserting text: %s\nType: multiline", text)
+                            logger.debug("Adjusted Position: %s", adjusted_box)
                             # Try inserting again with adjusted box
                             current_page.insert_textbox(
                                 adjusted_box,
@@ -169,20 +171,20 @@ class ReconstructionService:
             # Fix the output filename to avoid duplicate .pdf extensions
             base_name = os.path.splitext(original_filename)[0]
             # Remove any existing .pdf extension from the base name
-            if base_name.lower().endswith('.pdf'):
+            if base_name.lower().endswith(".pdf"):
                 base_name = os.path.splitext(base_name)[0]
-            
+
             output_filename = f"translated_{base_name}.pdf"
             output_path = os.path.join(self.output_dir, output_filename)
 
             # Save the reconstructed PDF
             doc.save(output_path)
             doc.close()
-            logger.info(f"Successfully saved reconstructed PDF to {output_path}")
+            logger.info("Successfully saved reconstructed PDF to %s", output_path)
 
             return output_filename
         except Exception as e:
-            logger.error(f"Error reconstructing PDF: {str(e)}", exc_info=True)
+            logger.error("Error reconstructing PDF: %s", str(e), exc_info=True)
             raise HTTPException(
                 status_code=500, detail=f"Error reconstructing PDF: {str(e)}"
             )

@@ -3,15 +3,11 @@ from typing import List
 import httpx
 from fastapi import HTTPException
 
+from app.api.v1.schemas.document import DocumentElement, ElementType
+from app.api.v1.schemas.translation import (LanguageCode, TranslationRequest,
+                                            TranslationResponse)
 from app.core.logging import logger
 from app.core.settings import settings
-
-from app.api.v1.schemas.document import DocumentElement, ElementType
-from app.api.v1.schemas.translation import (
-    LanguageCode,
-    TranslationRequest,
-    TranslationResponse,
-)
 
 
 class TranslationService:
@@ -40,7 +36,8 @@ class TranslationService:
             translated_elements = []
             for i, group in enumerate(grouped_elements):
                 logger.debug(
-                    f"Translating group {i+1}/{len(grouped_elements)} with {len(group)} elements"
+                    f"Translating group {i+1}/{len(grouped_elements)} "
+                    f"with {len(group)} elements"
                 )
                 translated_group = await self._translate_element_group(
                     group, request.src_lang, request.target_lang
@@ -48,7 +45,8 @@ class TranslationService:
                 translated_elements.extend(translated_group)
 
             logger.info(
-                f"Translation completed successfully. Translated {len(translated_elements)} elements"
+                "Translation completed successfully. "
+                f"Translated {len(translated_elements)} elements"
             )
             return TranslationResponse(translated_elements=translated_elements)
         except Exception as e:
@@ -122,7 +120,8 @@ class TranslationService:
             ElementType.TABLE,
         ]:
             logger.debug(
-                f"Skipping non-text element group of type {elements[0].type if elements else 'None'}"
+                f"Skipping non-text element group of type "
+                f"{elements[0].type if elements else 'None'}"
             )
             return elements
 
@@ -141,7 +140,8 @@ class TranslationService:
             )
 
             logger.debug(
-                f"Translating element {i+1}/{len(elements)} with context length {len(context)}"
+                f"Translating element {i+1}/{len(elements)} "
+                f"with context length {len(context)}"
             )
 
             # Translate with context

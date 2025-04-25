@@ -10,21 +10,36 @@ import sys
 import time
 from pathlib import Path
 
+
 def run_backend():
     """
     Run the FastAPI backend server
     """
-    os.environ["PYTHONPATH"] = f"{os.environ.get('PYTHONPATH', '')}:{Path(__file__).parent}/src"
-    backend_cmd = ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    os.environ["PYTHONPATH"] = (
+        f"{os.environ.get('PYTHONPATH', '')}:{Path(__file__).parent}/src"
+    )
+    backend_cmd = [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+    ]
     return subprocess.Popen(backend_cmd)
+
 
 def run_frontend():
     """
     Run the Streamlit frontend
     """
-    os.environ["PYTHONPATH"] = f"{os.environ.get('PYTHONPATH', '')}:{Path(__file__).parent}/src"
+    os.environ["PYTHONPATH"] = (
+        f"{os.environ.get('PYTHONPATH', '')}:{Path(__file__).parent}/src"
+    )
     frontend_cmd = ["streamlit", "run", "src/ui/main.py"]
     return subprocess.Popen(frontend_cmd)
+
 
 def main():
     """
@@ -52,6 +67,7 @@ def main():
         backend_process.terminate()
         frontend_process.terminate()
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

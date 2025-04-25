@@ -5,10 +5,10 @@ from typing import List, Tuple
 import pymupdf
 from fastapi import HTTPException
 
+from app.api.v1.schemas.document import (DocumentElement, ElementType,
+                                         Position, TextAlignment)
 from app.core.config import app_config
 from app.core.logging import logger
-
-from app.api.v1.schemas.document import DocumentElement, ElementType, Position, TextAlignment
 
 
 class PdfService:
