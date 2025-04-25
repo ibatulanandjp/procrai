@@ -13,7 +13,16 @@ router = APIRouter()
 async def get_translated_doc(
     filename: str,
 ) -> FileResponse:
-    """Get a result file (PDF, etc.) from the output directory."""
+    """
+    Download the translated document.
+
+    Args:
+        filename: Name of the file to download
+    Returns:
+        FileResponse: Response containing the file
+    Raises:
+        HTTPException: If the file is not found
+    """
     try:
         file_path = os.path.join(app_config.settings.OUTPUT_DIR, filename)
         logger.info(f"Retrieving result file: {filename}")

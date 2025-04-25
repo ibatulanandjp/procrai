@@ -22,8 +22,19 @@ async def process_document(
     """
     Process a document through the complete workflow:
     OCR -> Translate -> Reconstruct -> Download
-
     Returns the final PDF file.
+
+    Args:
+        file: The file to upload
+        src_lang: Source language for translation
+        target_lang: Target language for translation
+        workflow_service: Workflow service dependency
+    Returns:
+        FileResponse: Response containing the final PDF file
+    Raises:
+        HTTPException: If the file upload or processing fails
+    Raises:
+        Exception: If any unexpected error occurs
     """
     try:
         logger.info(f"Uploading file: {file.filename}")

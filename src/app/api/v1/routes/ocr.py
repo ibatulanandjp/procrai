@@ -17,6 +17,17 @@ async def ocr(
     filename: str,
     ocr_service: OcrService = Depends(OcrService),
 ) -> OcrResponse:
+    """
+    Extract text from a PDF/image file using OCR.
+
+    Args:
+        filename: Name of the file to process
+        ocr_service: OCR service dependency
+    Returns:
+        OcrResponse: Response containing extracted text and page count
+    Raises:
+        HTTPException: If the file is not found or OCR processing fails
+    """
     file_path = os.path.join(UPLOAD_DIR, filename)
 
     if not os.path.exists(file_path):

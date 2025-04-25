@@ -7,7 +7,7 @@ description = "Intelligent OCR and LLM-powered document translator"
 authors = [
     {name = "Atul Anand",email = "ib.atulanandjp@gmail.com"}
 ]
-readme = "../README.md"
+readme = "README.md"
 requires-python = ">3.9.7,<4.0"
 packages=[
     { include = "app"}

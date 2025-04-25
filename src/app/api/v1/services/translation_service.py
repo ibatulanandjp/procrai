@@ -4,15 +4,18 @@ import httpx
 from fastapi import HTTPException
 
 from app.api.v1.schemas.document import DocumentElement, ElementType
-from app.api.v1.schemas.translation import (LanguageCode, TranslationRequest,
-                                            TranslationResponse)
+from app.api.v1.schemas.translation import (
+    LanguageCode,
+    TranslationRequest,
+    TranslationResponse,
+)
 from app.core.logging import logger
 from app.core.settings import settings
 
 
 class TranslationService:
-    def __init__(self, model: str = "gemma3"):
-        self.model = model
+    def __init__(self):
+        self.model = settings.OLLAMA_MODEL
         self.llm_base_url = settings.OLLAMA_BASE_URL
         self.chunk_size = 1000
 
