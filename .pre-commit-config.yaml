@@ -17,4 +17,4 @@ repos:
     rev: 7.1.2
     hooks:
       - id: flake8
-        args: [--config=./src/backend/.flake8]
+        args: [--config=./src/.flake8]

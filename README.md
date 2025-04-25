@@ -13,7 +13,7 @@ Traditional translation services compromise security by requiring document uploa
 - ⚡ **Flexible Deployment**: Choose between local open-source models or cloud-based solutions
 
 ## Sample Results
-![Sample Result](/docs/images/en_jp_translation.png)
+![Sample Result](./docs/images/en_jp_translation.png)
 
 ## Real-World Applications
 
@@ -45,12 +45,13 @@ Traditional translation services compromise security by requiring document uploa
 
 ## Features:
  - [x] Translate PDFs with great precision, keeping the doc structure/layout the same
- - [x] Support for local open-source LLMs (Genma3, Llama, Mistral etc.)
+ - [x] Support for local open-source LLMs (Gemma3, Llama, Mistral etc.)
+ - [x] User-friendly Streamlit interface for document upload and translation
+ - [x] Complete workflow from OCR to translation to reconstruction
 
 ## To Do:
  - [ ] Add support for more OCR engines (easyOCR, MistralOCR, etc.)
  - [ ] Add support for closed-source LLMs (GPT-4, Claude, Gemini, etc.)
- - [ ] Add UI for document processing and result management
  - [ ] Add editing capabilities to adjust text or components in the output document
  - [ ] Handle complex document components precisely (complex tables and layouts, etc.)
 
@@ -59,6 +60,7 @@ Traditional translation services compromise security by requiring document uploa
 - Python 3.9+
 - Poetry (for dependency management)
 - Tesseract OCR (for image processing)
+- Ollama (for running local LLMs)
 
 ## Installation
 
@@ -80,7 +82,16 @@ Traditional translation services compromise security by requiring document uploa
    # Download and install from https://github.com/UB-Mannheim/tesseract/wiki
    ```
 
-3. Set up the backend:
+3. Install Ollama (for running local LLMs):
+   ```bash
+   # On macOS/Linux
+   curl https://ollama.ai/install.sh | sh
+
+   # On Windows
+   # Download and install from https://ollama.ai/download
+   ```
+
+4. Set up the Python environment:
    ```bash
    # Create and activate virtual environment
    python -m venv venv
@@ -101,13 +112,17 @@ Traditional translation services compromise security by requiring document uploa
 
 ## Running the Application
 
-1. Start the backend server:
-   ```bash
-   cd src/backend
-   uvicorn app.main:app --reload
-   ```
+Run both frontend and backend with a single command
 
-2. Access the API documentation at `http://localhost:8000/api/v1/docs`
+```bash
+# Make the start script executable
+chmod +x scripts/start.py
+
+# Run the application
+./scripts/start.py
+```
+
+Access the Procrai App at `http://localhost:8501`
 
 ## API Documentation
 
