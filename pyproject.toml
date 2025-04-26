@@ -30,6 +30,7 @@ python-dotenv = "^1.0.1"
 pydantic-settings = "^2.8.1"
 python-multipart = "^0.0.20"
 streamlit = "^1.44.1"
+streamlit-pdf-viewer = "^0.0.22"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
