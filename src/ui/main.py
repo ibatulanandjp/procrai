@@ -111,14 +111,14 @@ def main():
         with col1:
             st.markdown("### Original Document")
             if st.session_state.original_file:
-                pdf_viewer(st.session_state.original_file, width=600, height=600)
+                pdf_viewer(st.session_state.original_file, width=550, height=650)
             else:
                 st.warning("No original file to display.")
 
         with col2:
             st.markdown("### Translated Document")
             if st.session_state.translated_file:
-                pdf_viewer(st.session_state.translated_file, width=600, height=600)
+                pdf_viewer(st.session_state.translated_file, width=550, height=650)
             else:
                 st.warning("No translated file to display.")
 
@@ -147,8 +147,9 @@ def main():
             position: fixed;
             left: 0;
             bottom: 0;
-            width: calc(100% - 21rem);
-            margin-left: 21rem;
+            width: calc(100% - 10rem);
+            margin-left: 10rem;
+            width: 100%;
             background: #0e1117;
             color: gray;
             text-align: center;
@@ -156,14 +157,15 @@ def main():
             padding: 0.5rem 0;
             z-index: 100;
             border-top: 1px solid #222;
-            transition: margin-left 0.2s, width 0.2s;
+            overflow-x: hidden;
+            # transition: margin-left 0.2s, width 0.2s;
         }
-        @media (max-width: 1200px) {
-            .footer {
-                width: 100% !important;
-                margin-left: 0 !important;
-            }
-        }
+        # @media (max-width: 1200px) {
+        #     .footer {
+        #         width: 100% !important;
+        #         margin-left: 0 !important;
+        #     }
+        # }
         </style>
         <div class="footer">
             Procrai - Document Translation

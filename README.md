@@ -1,5 +1,5 @@
 # Procrai
-**Enterprise-Grade Document Translation with Uncompromising Privacy**
+**Enterprise-Grade Document Translation without compromising Privacy**
 
 Procrai is a revolutionary document translation platform that combines state-of-the-art OCR technology with powerful LLMs to deliver precise, layout-preserving translations while ensuring complete data privacy. Born from a real-world need to securely translate sensitive financial documents, Procrai addresses the critical gap in the market for private, enterprise-grade document translation solutions.
 
@@ -10,10 +10,9 @@ Traditional translation services compromise security by requiring document uploa
 - 🔒 **Complete Data Privacy**: Process documents entirely on your local infrastructure
 - 📊 **Layout Preservation**: Maintains exact document formatting and structure
 - 🤖 **AI-Powered**: Leverages cutting-edge LLMs for accurate, context-aware translations
-- ⚡ **Flexible Deployment**: Choose between local open-source models or cloud-based solutions
 
-## Sample Results
-![Sample Result](./docs/images/en_jp_translation.png)
+## Demo
+![Demo](./docs/images/demo.png)
 
 ## Real-World Applications
 
@@ -33,27 +32,17 @@ Traditional translation services compromise security by requiring document uploa
 - **Processing**: Local processing with complete data privacy
 
 ### Coming Soon
-- **Languages**: Support for major languages including Chinese, Korean, Spanish, French, and German
+- **Language**: Support for major languages including Chinese, Korean, Spanish, French, and German
+- **OCR Engines**: Integration with additional OCR solutions (easyOCR, MistralOCR)
 - **Document Types**: Enhanced support for complex documents with:
   - Multi-column layouts
   - Complex tables and charts
   - Mathematical equations
   - Handwritten text recognition
-- **OCR Engines**: Integration with additional OCR solutions (easyOCR, MistralOCR)
-- **LLM Models**: Support for cloud-based models (GPT-4, Claude, Gemini)
-- **Processing**: Cloud-based processing option for non-sensitive documents
-
-## Features:
- - [x] Translate PDFs with great precision, keeping the doc structure/layout the same
- - [x] Support for local open-source LLMs (Gemma3, Llama, Mistral etc.)
- - [x] User-friendly Streamlit interface for document upload and translation
- - [x] Complete workflow from OCR to translation to reconstruction
-
-## To Do:
- - [ ] Add support for more OCR engines (easyOCR, MistralOCR, etc.)
- - [ ] Add support for closed-source LLMs (GPT-4, Claude, Gemini, etc.)
- - [ ] Add editing capabilities to adjust text or components in the output document
- - [ ] Handle complex document components precisely (complex tables and layouts, etc.)
+  - Translation of Images in the document
+- **LLM Models**: Support for closed-source models (GPT-4, Claude, Gemini)
+- **Processing**: Cloud-based secure processing option (in a secure sandbox) with ultimate privacy
+- **Editing Capabilities**: Support for editing the output document to adjust text or other components
 
 ## Prerequisites
 
